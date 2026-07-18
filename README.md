@@ -1,6 +1,6 @@
 # Algebra Tutor
 
-> Un motor algebraico de código abierto y especializado en educación, diseñado para explicar el razonamiento paso a paso al resolver ecuaciones.
+> Un motor algebraico de código abierto y especializado en educación, diseñado para explicar el razonamiento paso a paso al resolver ecuaciones. Actualmente se encuentra en desarrollo.
 
 ![Screenshot](./frontend/public/screenshot.png) <!-- TODO: Add an actual screenshot -->
 

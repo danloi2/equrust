@@ -434,14 +434,16 @@ mod tests {
             "Expected x = 7, got {}\nSteps: {:#?}",
             output.result_latex, output.steps.iter().map(|s| &s.rule_name).collect::<Vec<_>>()
         );
-        #[test]
+    }
+
+    #[test]
     fn test_square_both_sides() {
         let eq_str = "\\sqrt{x + 4} = 6";
-        let out = solve_eq(eq_str);
+        let solver = default_solver();
+        let out = solver.simplify_equation(parse_equation(eq_str).unwrap());
         // It should square both sides -> x + 4 = 36 -> x = 32
         assert_eq!(out.result_latex, "x = 32");
     }
-}
 
     #[test]
     fn test_full_solve_2x_plus5_eq_9() {
