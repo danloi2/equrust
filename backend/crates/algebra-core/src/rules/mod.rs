@@ -45,3 +45,5 @@ pub mod distributive;
 pub mod combine_like_terms;
 pub mod equation;
 pub mod quadratic;
+pub mod clear_denominators;
+pub mod merge_coefficients;

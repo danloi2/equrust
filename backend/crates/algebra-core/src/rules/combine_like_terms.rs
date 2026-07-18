@@ -343,4 +343,27 @@ mod tests {
         let expr = Expr::Add(Box::new(mul(3.0, "x")), Box::new(mul(2.0, "y")));
         assert!(!rule.applies(&expr));
     }
+
+    #[test]
+    fn test_11x_minus_162_plus_28x() {
+        let rule = CombineLikeTerms;
+        // (11x - 162) + 28x
+        let inner = Expr::Subtract(Box::new(mul(11.0, "x")), n(162.0));
+        let expr = Expr::Add(Box::new(inner), Box::new(mul(28.0, "x")));
+        assert!(rule.applies(&expr), "Should apply to (11x-162)+28x");
+        let result = rule.apply(expr);
+        match &result.after {
+            Expr::Subtract(l, r) => {
+                match l.as_ref() {
+                    Expr::Multiply(cl, vl) => {
+                        assert_eq!(**cl, Expr::Number(39.0));
+                        assert_eq!(**vl, Expr::Variable("x".to_string()));
+                    }
+                    _ => panic!("Expected Multiply for var term"),
+                }
+                assert_eq!(**r, Expr::Number(162.0));
+            }
+            _ => panic!("Expected Subtract"),
+        }
+    }
 }

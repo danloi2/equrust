@@ -18,6 +18,7 @@ pub enum Token {
     RBrace,
     Equals,
     Sqrt,
+    Frac,
 }
 
 impl fmt::Display for Token {
@@ -36,6 +37,7 @@ impl fmt::Display for Token {
             Token::RBrace     => write!(f, "}}"),
             Token::Equals     => write!(f, "="),
             Token::Sqrt       => write!(f, "sqrt"),
+            Token::Frac       => write!(f, "\\frac"),
         }
     }
 }
@@ -68,9 +70,10 @@ pub fn lexer<'src>()
     ));
 
     let sqrt = just("sqrt").or(just("\\sqrt")).to(Token::Sqrt);
+    let frac = just("\\frac").to(Token::Frac);
 
     // num must come before ident so "3x" lexes as [Number("3"), Variable("x")]
-    num.or(sqrt).or(ident).or(op)
+    num.or(sqrt).or(frac).or(ident).or(op)
         .map_with(|tok, e| (tok, e.span()))
         .padded()
         .repeated()

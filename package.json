@@ -1,0 +1,13 @@
+{
+  "name": "equrust",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && pnpm run dev",
+    "dev:backend": "nodemon --watch backend/crates --ext rs,toml --exec 'cd backend && cargo run -p api'",
+    "dev": "concurrently \"pnpm run dev:backend\" \"pnpm run dev:frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.14"
+  }
+}

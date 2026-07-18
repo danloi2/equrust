@@ -452,4 +452,31 @@ mod tests {
         let output = solver.simplify_equation(parse_equation("2x+5=9").unwrap());
         assert_eq!(output.result_latex, "x = 2");
     }
+
+    #[test]
+    fn test_fraction_equation() {
+        let input = "\\frac{5(3x-2)}{8}-\\frac{2(4x+7)}{5}+\\frac{7x-9}{10}=\\frac{3(2x+1)}{4}-\\frac{x-6}{2}+\\frac{11}{20}";
+        let solver = default_solver();
+        let eq = parse_equation(input).expect("parse failed");
+        let output = solver.simplify_equation(eq);
+        assert_eq!(
+            output.result_latex, "x = -370",
+            "Expected x = -370, got: {}\nSteps: {:#?}",
+            output.result_latex,
+            output.steps.iter().map(|s| &s.rule_name).collect::<Vec<_>>()
+        );
+    }
+    
+    #[test]
+    fn test_solver_on_full_ast() {
+        let ast = parse_equation("75x - 50 - (64x + 112) + 28x - 36 = 0").unwrap().left;
+        let solver = default_solver();
+        let mut steps = vec![];
+        let res = solver.simplify_expr_pub(ast, &mut steps);
+        println!("Simplified: {:#?}", res);
+        println!("Steps:");
+        for step in steps {
+            println!("- {}", step.rule_name);
+        }
+    }
 }

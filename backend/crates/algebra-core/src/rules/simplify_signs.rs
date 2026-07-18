@@ -110,6 +110,84 @@ fn extract_zero_minus(e: Box<Expr>) -> Box<Expr> {
     }
 }
 
+/// Distributes a negative sign: `A - (B + C) -> A - B - C` and `A - (B - C) -> A - B + C`
+pub struct DistributeMinus;
+
+impl Rule for DistributeMinus {
+    fn name(&self) -> &'static str {
+        "Distribuir signo negativo"
+    }
+
+    fn applies(&self, expr: &Expr) -> bool {
+        if let Expr::Subtract(_, r) = expr {
+            matches!(r.as_ref(), Expr::Add(_, _) | Expr::Subtract(_, _))
+        } else {
+            false
+        }
+    }
+
+    fn apply(&self, expr: Expr) -> RuleResult {
+        match expr {
+            Expr::Subtract(l, r) => match *r {
+                Expr::Add(rl, rr) => RuleResult {
+                    after: Expr::Subtract(Box::new(Expr::Subtract(l, rl)), rr),
+                    title: "Distribuir signo negativo",
+                    explanation: "Se cambia el signo de cada término dentro del paréntesis: −(a + b) = −a − b".to_string(),
+                    concept: "Álgebra — distribución del signo negativo",
+                },
+                Expr::Subtract(rl, rr) => RuleResult {
+                    after: Expr::Add(Box::new(Expr::Subtract(l, rl)), rr),
+                    title: "Distribuir signo negativo",
+                    explanation: "Se cambia el signo de cada término dentro del paréntesis: −(a − b) = −a + b".to_string(),
+                    concept: "Álgebra — distribución del signo negativo",
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// Left-associates Add/Subtract so that CombineLikeTerms can work on a flat list.
+/// Add(A, Add(B, C)) -> Add(Add(A, B), C)
+/// Add(A, Subtract(B, C)) -> Subtract(Add(A, B), C)
+pub struct FlattenAddSub;
+
+impl Rule for FlattenAddSub {
+    fn name(&self) -> &'static str {
+        "Asociar términos"
+    }
+
+    fn applies(&self, expr: &Expr) -> bool {
+        if let Expr::Add(_, r) = expr {
+            matches!(r.as_ref(), Expr::Add(_, _) | Expr::Subtract(_, _))
+        } else {
+            false
+        }
+    }
+
+    fn apply(&self, expr: Expr) -> RuleResult {
+        match expr {
+            Expr::Add(l, r) => match *r {
+                Expr::Add(rl, rr) => RuleResult {
+                    after: Expr::Add(Box::new(Expr::Add(l, rl)), rr),
+                    title: "Asociar términos",
+                    explanation: "Se agrupan las sumas: a + (b + c) = a + b + c".to_string(),
+                    concept: "Álgebra — propiedad asociativa de la suma",
+                },
+                Expr::Subtract(rl, rr) => RuleResult {
+                    after: Expr::Subtract(Box::new(Expr::Add(l, rl)), rr),
+                    title: "Asociar términos",
+                    explanation: "Se quitan los paréntesis en la suma: a + (b − c) = a + b − c".to_string(),
+                    concept: "Álgebra — propiedad asociativa de la suma",
+                },
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

@@ -4,6 +4,7 @@ use crate::formatter::FormatLatex;
 use crate::rules::Rule;
 use crate::rules::equation::{try_equation_rule, EqStep};
 use crate::rules::quadratic::try_solve_quadratic;
+use crate::rules::clear_denominators::try_clear_denominators;
 
 // ─── Step ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,7 @@ impl Solver {
     }
 
     /// Simplify an `Equation` step by step:
+    ///   0. Eliminate denominators first (before SimplifyConstants can convert 11/20 → 0.55)
     ///   1. Simplify both sides with expression-level rules (bottom-up)
     ///   2. Apply equation-level rules (move constants, divide, etc.)
     ///   3. Repeat until no rule applies.
@@ -73,13 +75,21 @@ impl Solver {
         let mut steps: Vec<Step> = Vec::new();
         let mut current = eq;
 
+        // Phase 0: Clear denominators BEFORE any expression simplification.
+        // This ensures 11/20 doesn't become 0.55 before the LCM can act on it.
+        if let Some(eq_step) = try_clear_denominators(&current) {
+            current = eq_step.after.clone();
+            steps.push(Step::from_eq_step(eq_step));
+        }
+
         loop {
             // Phase A: simplify both sides with expression rules
             let left  = self.simplify_expr(current.left,  &mut steps);
             let right = self.simplify_expr(current.right, &mut steps);
             current = Equation { left, right };
 
-            // Phase B: try one equation-level rule
+            // Phase B: try one equation-level rule (clear_denominators is now
+            // excluded from the loop since we already did it above)
             if let Some(eq_step) = try_equation_rule(&current) {
                 current = eq_step.after.clone();
                 steps.push(Step::from_eq_step(eq_step));
@@ -213,20 +223,28 @@ impl Solver {
 
 // ─── Default Solver (Phases 5–8) ──────────────────────────────────────────────────────────
 
-use crate::rules::simplify_constants::SimplifyConstants;
-use crate::rules::simplify_signs::SimplifySigns;
+use crate::rules::simplify_constants::{SimplifyConstants, CombineNestedConstants};
+use crate::rules::simplify_signs::{SimplifySigns, DistributeMinus, FlattenAddSub};
 use crate::rules::distributive::Distributive;
 use crate::rules::combine_like_terms::CombineLikeTerms;
+use crate::rules::merge_coefficients::MergeCoefficients;
 
 /// Build the default solver with rules ordered by priority:
 ///   0. Simplificar dobles signos (siempre primero)
-///   1. Calcular constantes (Phase 5)
-///   2. Propiedad distributiva (Phase 6)
-///   3. Reducir términos semejantes (Phase 7)
+///   1. Distribuir signo negativo: -(a+b) -> -a-b
+///   2. Asociar términos: a+(b+c) -> a+b+c
+///   3. Fusionar coeficientes: 25*(3*x) -> 75x  (produced by clear_denominators)
+///   4. Calcular constantes (Phase 5)
+///   5. Propiedad distributiva (Phase 6)
+///   6. Reducir términos semejantes (Phase 7)
 ///   Equation rules (Phase 8) are applied separately inside simplify_equation.
 pub fn default_solver() -> Solver {
     Solver::new(vec![
         Box::new(SimplifySigns),
+        Box::new(DistributeMinus),
+        Box::new(FlattenAddSub),
+        Box::new(MergeCoefficients),
+        Box::new(CombineNestedConstants),
         Box::new(SimplifyConstants),
         Box::new(Distributive),
         Box::new(CombineLikeTerms),

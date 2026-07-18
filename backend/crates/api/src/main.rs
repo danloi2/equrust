@@ -33,7 +33,14 @@ struct ErrorResponse {
 
 async fn solve(Json(payload): Json<SolveRequest>) -> Json<SolveResponse> {
     // 0. Preprocess: normalize superscript numbers (e.g. from mobile keyboards or copy-paste)
+    // and clean up basic LaTeX formatting for native parsing
     let expr_str = payload.expression
+        .replace("\\[", "")
+        .replace("\\]", "")
+        .replace("\\left(", "(")
+        .replace("\\right)", ")")
+        .replace("\\cdot", "*")
+        .replace(" ", "") // remove spaces to clean up latex formatting
         .replace("⁰", "^0")
         .replace("¹", "^1")
         .replace("²", "^2")

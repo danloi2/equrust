@@ -138,6 +138,83 @@ fn extract_pair(l: Expr, r: Expr) -> (f64, f64) {
     }
 }
 
+// ─── Rule: Combine Nested Constants ───────────────────────────────────────────
+//
+// Handles combining constants that are separated by an operation:
+//   (expr + a) + b  ->  expr + (a + b)
+//   (expr - a) + b  ->  expr + (b - a)
+//   (expr + a) - b  ->  expr + (a - b)
+//   (expr - a) - b  ->  expr - (a + b)
+pub struct CombineNestedConstants;
+
+impl Rule for CombineNestedConstants {
+    fn name(&self) -> &'static str {
+        "Reducir constantes"
+    }
+
+    fn applies(&self, expr: &Expr) -> bool {
+        match expr {
+            Expr::Add(outer_l, outer_r) | Expr::Subtract(outer_l, outer_r) => {
+                if let Expr::Number(_) = outer_r.as_ref() {
+                    match outer_l.as_ref() {
+                        Expr::Add(_, r) | Expr::Subtract(_, r) => {
+                            matches!(r.as_ref(), Expr::Number(_))
+                        }
+                        _ => false,
+                    }
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
+    fn apply(&self, expr: Expr) -> RuleResult {
+        let (expr_inner, inner_const, outer_const, is_outer_add, is_inner_add) = match &expr {
+            Expr::Add(outer_l, outer_r) => {
+                let oc = match outer_r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() };
+                match outer_l.as_ref() {
+                    Expr::Add(l, r) => (l.clone(), match r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() }, oc, true, true),
+                    Expr::Subtract(l, r) => (l.clone(), match r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() }, oc, true, false),
+                    _ => unreachable!(),
+                }
+            }
+            Expr::Subtract(outer_l, outer_r) => {
+                let oc = match outer_r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() };
+                match outer_l.as_ref() {
+                    Expr::Add(l, r) => (l.clone(), match r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() }, oc, false, true),
+                    Expr::Subtract(l, r) => (l.clone(), match r.as_ref() { Expr::Number(n) => *n, _ => unreachable!() }, oc, false, false),
+                    _ => unreachable!(),
+                }
+            }
+            _ => unreachable!(),
+        };
+
+        // Calculate combined value.
+        // Original:  expr OP_INNER inner_const OP_OUTER outer_const
+        // Let's treat inner_const as signed, outer_const as signed.
+        let signed_inner = if is_inner_add { inner_const } else { -inner_const };
+        let signed_outer = if is_outer_add { outer_const } else { -outer_const };
+        let combined = signed_inner + signed_outer;
+
+        let after = if combined == 0.0 {
+            *expr_inner
+        } else if combined > 0.0 {
+            Expr::Add(expr_inner, Box::new(Expr::Number(combined)))
+        } else {
+            Expr::Subtract(expr_inner, Box::new(Expr::Number(-combined)))
+        };
+
+        RuleResult {
+            after,
+            title: "Reducir constantes",
+            explanation: format!("Se agrupan los términos independientes: {} y {}", fmt_num(signed_inner), fmt_num(signed_outer)),
+            concept: "Álgebra — suma de términos independientes",
+        }
+    }
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

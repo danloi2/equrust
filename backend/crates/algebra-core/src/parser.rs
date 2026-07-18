@@ -27,7 +27,16 @@ where
             )
             .map(|inner| Expr::Sqrt(Box::new(inner)));
 
-        let atom = number.or(variable).or(sqrt).or(parenthesized).or(braced);
+        let frac = just(Token::Frac)
+            .ignore_then(
+                expr.clone().delimited_by(just(Token::LBrace), just(Token::RBrace))
+            )
+            .then(
+                expr.clone().delimited_by(just(Token::LBrace), just(Token::RBrace))
+            )
+            .map(|(num, den)| Expr::Divide(Box::new(num), Box::new(den)));
+
+        let atom = number.or(variable).or(sqrt).or(frac).or(parenthesized).or(braced);
 
         // ── Exponentiation (right-associative) ───────────────────────────────
         // atom ^ atom ^ … using foldl (becomes left-assoc, sufficient for now)

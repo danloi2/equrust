@@ -27,3 +27,4 @@ frontend/tsconfig.tsbuildinfo
 
 # Project specific
 AGENTS.md
+node_modules
