@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "crates/algebra-core",
+    "crates/api"
+]
+resolver = "2"
