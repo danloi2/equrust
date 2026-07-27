@@ -1,0 +1,74 @@
+import type { Expr, Rule, RuleResult } from '../types/index';
+import { SimplifyConstantsRule } from '../rules/simplifyConstants';
+import { SimplifyParenthesisRule } from '../rules/simplifyParenthesis';
+import { SimplifySignsRule } from '../rules/simplifySigns';
+import { DistributiveRule } from '../rules/distributive';
+import { CombineLikeTermsRule } from '../rules/combineLikeTerms';
+import { MoveTermsRule } from '../rules/moveTerms';
+import { DivideBothSidesRule } from '../rules/divideBothSides';
+import { QuadraticFormulaRule } from '../rules/quadratic';
+
+import { ClearDenominatorsRule } from '../rules/clearDenominators';
+import { SquareBothSidesRule } from '../rules/squareBothSides';
+import { SqrtDomainCheckRule } from '../rules/sqrtDomainCheck';
+import { ExpandPowerRule } from '../rules/expandPower';
+
+export class Solver {
+	private rules: Rule[];
+
+	constructor() {
+		// Orden de prioridad estricto (de mayor a menor)
+		this.rules = [
+			new ClearDenominatorsRule(),    // 0. Eliminar denominadores (MCM) antes que nada
+			new SimplifySignsRule(),        // 1. Simplificar signos (-1*-1 → 1, -1*2 → -2)
+			new SimplifyConstantsRule(),    // 2. Operar constantes (2+3 → 5)
+			new SimplifyParenthesisRule(),  // 3. Eliminar paréntesis redundantes
+			new DistributiveRule(),         // 4a. Propiedad distributiva
+			new ExpandPowerRule(),          // 4b. Expandir (expr)^n → producto repetido
+			new CombineLikeTermsRule(),     // 5. Agrupar términos semejantes
+			new SqrtDomainCheckRule(),      // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
+			new SquareBothSidesRule(),      // 6b. Elevar al cuadrado ambos lados para quitar raíces
+			new QuadraticFormulaRule(),     // 7. Fórmula cuadrática (ANTES de mover términos)
+			new MoveTermsRule(),            // 8. Transponer términos en ecuaciones
+			new DivideBothSidesRule(),      // 9. Dividir ambos lados por el coeficiente
+		];
+	}
+
+	/**
+	 * Resuelve una expresión aplicando reglas paso a paso hasta que ninguna aplique.
+	 */
+	solve(initialExpr: Expr): RuleResult[] {
+		const steps: RuleResult[] = [];
+		let currentExpr = initialExpr;
+		let ruleApplied = true;
+		let iterations = 0;
+		const maxIterations = 50;
+
+		while (ruleApplied && iterations < maxIterations) {
+			ruleApplied = false;
+
+			for (const rule of this.rules) {
+				if (rule.applies(currentExpr)) {
+					const result = rule.apply(currentExpr);
+					// Prevención de bucle infinito: ignorar si el árbol no cambió
+					if (result.after === currentExpr) continue;
+					steps.push(result);
+					currentExpr = result.after;
+					ruleApplied = true;
+					// Si la regla es terminal (sin solución, fin definitivo), detener
+					if (result.terminal) {
+						ruleApplied = false;
+					}
+					break;
+				}
+			}
+			iterations++;
+		}
+
+		if (iterations >= maxIterations) {
+			console.warn('Solver: límite máximo de iteraciones alcanzado.');
+		}
+
+		return steps;
+	}
+}

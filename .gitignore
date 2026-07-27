@@ -1,30 +1,23 @@
-# General
-.DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Rust / Backend
-backend/target/
-**/*.rs.bk
-
-# Node / Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/dist-ssr/
-frontend/.npm/
-frontend/coverage/
-frontend/.eslintcache
-frontend/tsconfig.tsbuildinfo
-
-# IDEs
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Project specific
-AGENTS.md
 node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
