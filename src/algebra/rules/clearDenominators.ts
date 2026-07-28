@@ -88,6 +88,8 @@ export class ClearDenominatorsRule implements Rule {
 
 	applies(expr: Expr): boolean {
 		if (expr.type !== 'Equation') return false;
+		// Si la variable ya está aislada (ej. x = 2/3), no se deben eliminar denominadores
+		if (expr.left.type === 'Variable') return false;
 		
 		const denoms = new Set<number>();
 		collectDenomsInner(expr.left, denoms);

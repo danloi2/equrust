@@ -84,6 +84,8 @@ export interface RuleResult {
 	readonly difficulty: number;
 	/** Soluciones reales de la ecuación: 2, 1 o 0 valores */
 	readonly solutions?: readonly [] | readonly [number] | readonly [number, number];
+	/** Representaciones en LaTeX de las soluciones (por ejemplo para mostrar fracciones exactas) */
+	readonly solutionsLatex?: readonly string[];
 	/** Si true, el solver no debe aplicar más reglas después de este paso */
 	readonly terminal?: boolean;
 }

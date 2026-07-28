@@ -56,7 +56,7 @@
 						<!-- Una solución doble -->
 						<div class="bg-gray-900 rounded-lg py-4 border border-amber-600/40 flex flex-col items-center gap-1">
 							<span class="text-xs text-amber-400 font-semibold tracking-widest uppercase mb-1">Raíz doble</span>
-							<MathExpression latex={`x = ${fmt(step.solutions[0])}`} />
+							<MathExpression latex={`x = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`} />
 						</div>
 
 					{:else}
@@ -64,11 +64,11 @@
 						<div class="grid grid-cols-2 gap-3">
 							<div class="bg-gray-900 rounded-lg py-4 border border-green-600/40 flex flex-col items-center gap-1">
 								<span class="text-xs text-green-400 font-semibold tracking-widest uppercase mb-1">Solución 1</span>
-								<MathExpression latex={`x_1 = ${fmt(step.solutions[0])}`} />
+								<MathExpression latex={`x_1 = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`} />
 							</div>
 							<div class="bg-gray-900 rounded-lg py-4 border border-green-600/40 flex flex-col items-center gap-1">
 								<span class="text-xs text-green-400 font-semibold tracking-widest uppercase mb-1">Solución 2</span>
-								<MathExpression latex={`x_2 = ${fmt(step.solutions[1])}`} />
+								<MathExpression latex={`x_2 = ${step.solutionsLatex?.[1] ?? fmt(step.solutions[1])}`} />
 							</div>
 						</div>
 					{/if}

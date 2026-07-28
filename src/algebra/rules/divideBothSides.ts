@@ -1,4 +1,5 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
+import { createFractionExpr } from '../utils/fraction';
 
 /**
  * Extrae el coeficiente de un término lineal en x: 3x → 3, x → 1, -x → -1
@@ -40,9 +41,11 @@ export class DivideBothSidesRule implements Rule {
 					? expr.left.left
 					: expr.left;
 
-		// Derecha: C / coef — si es exacto, simplificar
+		// Derecha: C / coef — si son enteros, convertir a fracción simplificada
 		let newRight: Expr;
-		if (expr.right.type === 'Number') {
+		if (expr.right.type === 'Number' && Number.isInteger(expr.right.value) && Number.isInteger(coef)) {
+			newRight = createFractionExpr(expr.right.value, coef);
+		} else if (expr.right.type === 'Number') {
 			const result = expr.right.value / coef;
 			newRight = { type: 'Number', value: result };
 		} else {
@@ -55,7 +58,8 @@ export class DivideBothSidesRule implements Rule {
 			title: `Dividir ambos lados por ${coef}`,
 			explanation: `Para aislar la variable, dividimos ambos lados de la ecuación por ${coef}, el coeficiente que acompaña a la incógnita.`,
 			concept: 'Propiedad de igualdad de la división',
-			difficulty: 5
+			difficulty: 5,
+			terminal: true
 		};
 	}
 }

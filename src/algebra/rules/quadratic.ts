@@ -1,4 +1,5 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
+import { createFractionExpr, formatFractionLatex } from '../utils/fraction';
 
 function collectTerms(expr: Expr): Expr[] {
 	if (expr.type === 'Add') return [...collectTerms(expr.left), ...collectTerms(expr.right)];
@@ -100,25 +101,30 @@ export class QuadraticFormulaRule implements Rule {
 				explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ < 0, la parábola no corta el eje x. La ecuación no tiene soluciones reales.`,
 				concept: 'Discriminante negativo → Sin raíces reales',
 				difficulty: 9,
-				solutions: []
+				solutions: [],
+				solutionsLatex: [],
+				terminal: true
 			};
 		}
 
 		if (discriminant === 0) {
 			const x = -b / (2 * a);
-			const xFormatted = Number.isInteger(x) ? x.toString() : x.toFixed(4);
+			const xExpr = createFractionExpr(-b, 2 * a);
+			const xLatex = formatFractionLatex(-b, 2 * a);
 			return {
 				before: expr,
 				after: {
 					type: 'Equation',
 					left: { type: 'Variable', name: varName },
-					right: { type: 'Number', value: x }
+					right: xExpr
 				},
 				title: 'Fórmula de Bhaskara — Una solución doble',
-				explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ = 0, la parábola es tangente al eje x. Hay una única solución (raíz doble):\n${varName} = −b / 2a = ${-b} / ${2 * a} = ${xFormatted}`,
+				explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ = 0, hay una única solución (raíz doble):\n${varName} = −b / 2a = ${-b} / ${2 * a} = ${xLatex}`,
 				concept: 'Discriminante cero → Una raíz doble',
 				difficulty: 9,
-				solutions: [x]
+				solutions: [x],
+				solutionsLatex: [xLatex],
+				terminal: true
 			};
 		}
 
@@ -126,20 +132,41 @@ export class QuadraticFormulaRule implements Rule {
 		const sqrtD = Math.sqrt(discriminant);
 		const x1 = (-b + sqrtD) / (2 * a);
 		const x2 = (-b - sqrtD) / (2 * a);
-		const fmt = (n: number) => Number.isInteger(n) ? n.toString() : n.toFixed(4);
+
+		let x1Expr: Expr;
+		let x2Expr: Expr;
+		let x1Latex: string;
+		let x2Latex: string;
+
+		if (Number.isInteger(sqrtD)) {
+			const num1 = -b + sqrtD;
+			const num2 = -b - sqrtD;
+			const den = 2 * a;
+			x1Expr = createFractionExpr(num1, den);
+			x2Expr = createFractionExpr(num2, den);
+			x1Latex = formatFractionLatex(num1, den);
+			x2Latex = formatFractionLatex(num2, den);
+		} else {
+			x1Expr = { type: 'Number', value: parseFloat(x1.toFixed(6)) };
+			x2Expr = { type: 'Number', value: parseFloat(x2.toFixed(6)) };
+			x1Latex = parseFloat(x1.toFixed(4)).toString();
+			x2Latex = parseFloat(x2.toFixed(4)).toString();
+		}
 
 		return {
 			before: expr,
 			after: {
 				type: 'Equation',
 				left: { type: 'Variable', name: `${varName}` },
-				right: { type: 'Number', value: parseFloat(x1.toFixed(6)) }
+				right: x1Expr
 			},
 			title: 'Fórmula de Bhaskara — Dos soluciones',
-			explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ > 0, la parábola corta el eje x en dos puntos. Aplicamos la fórmula:\n${varName} = (−b ± √Δ) / 2a = (${-b} ± √${discriminant}) / ${2 * a}`,
+			explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ > 0, aplicamos la fórmula cuadrática:\n${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}`,
 			concept: 'Discriminante positivo → Dos raíces reales',
 			difficulty: 9,
-			solutions: [x1, x2]
+			solutions: [x1, x2],
+			solutionsLatex: [x1Latex, x2Latex],
+			terminal: true
 		};
 	}
 }
