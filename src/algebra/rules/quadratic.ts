@@ -87,7 +87,10 @@ export class QuadraticFormulaRule implements Rule {
 		const { a, b, c, varName } = coefs;
 
 		const discriminant = b * b - 4 * a * c;
-		const discriminantStr = `${b}² - 4·(${a})·(${c}) = ${b * b} - ${4 * a * c} = ${discriminant}`;
+		const coefsStr = `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`;
+		const formulaStr = `${varName} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}`;
+		const subStr = `${varName} = \\frac{-(${b}) \\pm \\sqrt{(${b})^2 - 4 \\cdot (${a}) \\cdot (${c})}}{2 \\cdot (${a})}`;
+		const discCalcStr = `\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot (${a}) \\cdot (${c}) = ${discriminant}`;
 
 		if (discriminant < 0) {
 			return {
@@ -98,7 +101,18 @@ export class QuadraticFormulaRule implements Rule {
 					right: { type: 'Variable', name: '\\emptyset' }
 				},
 				title: 'Fórmula de Bhaskara — Sin solución real',
-				explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ < 0, la parábola no corta el eje x. La ecuación no tiene soluciones reales.`,
+				explanation: `Para la ecuación cuadrática, identificamos los coeficientes:\na = ${a}, b = ${b}, c = ${c}\nAplicamos la fórmula de Bhaskara:\nCalculamos el discriminante: Δ = ${discriminant}.\nComo Δ < 0, la ecuación no tiene soluciones reales.`,
+				explanationBlocks: [
+					{ type: 'text', content: 'Identificamos los coeficientes de la ecuación cuadrática:' },
+					{ type: 'math', content: coefsStr },
+					{ type: 'text', content: 'Fórmula general de Bhaskara:' },
+					{ type: 'math', content: formulaStr },
+					{ type: 'text', content: 'Sustituimos los coeficientes:' },
+					{ type: 'math', content: subStr },
+					{ type: 'text', content: 'Calculamos el discriminante Δ:' },
+					{ type: 'math', content: discCalcStr },
+					{ type: 'text', content: 'Como Δ < 0, la parábola no corta el eje x. La ecuación no tiene soluciones reales.' }
+				],
 				concept: 'Discriminante negativo → Sin raíces reales',
 				difficulty: 9,
 				solutions: [],
@@ -119,7 +133,19 @@ export class QuadraticFormulaRule implements Rule {
 					right: xExpr
 				},
 				title: 'Fórmula de Bhaskara — Una solución doble',
-				explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ = 0, hay una única solución (raíz doble):\n${varName} = −b / 2a = ${-b} / ${2 * a} = ${xLatex}`,
+				explanation: `Para la ecuación cuadrática, identificamos:\na = ${a}, b = ${b}, c = ${c}\nAplicamos Bhaskara: ${varName} = ${xLatex}`,
+				explanationBlocks: [
+					{ type: 'text', content: 'Identificamos los coeficientes de la ecuación cuadrática:' },
+					{ type: 'math', content: coefsStr },
+					{ type: 'text', content: 'Fórmula general de Bhaskara:' },
+					{ type: 'math', content: formulaStr },
+					{ type: 'text', content: 'Sustituimos los coeficientes:' },
+					{ type: 'math', content: subStr },
+					{ type: 'text', content: 'Calculamos el discriminante Δ:' },
+					{ type: 'math', content: discCalcStr },
+					{ type: 'text', content: 'Como Δ = 0, obtenemos una única raíz doble:' },
+					{ type: 'math', content: `${varName} = \\frac{-(${b})}{2 \\cdot (${a})} = ${xLatex}` }
+				],
 				concept: 'Discriminante cero → Una raíz doble',
 				difficulty: 9,
 				solutions: [x],
@@ -161,7 +187,19 @@ export class QuadraticFormulaRule implements Rule {
 				right: x1Expr
 			},
 			title: 'Fórmula de Bhaskara — Dos soluciones',
-			explanation: `Calculamos el discriminante: Δ = ${discriminantStr}. Como Δ > 0, aplicamos la fórmula cuadrática:\n${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}`,
+			explanation: `Para la ecuación cuadrática, identificamos los coeficientes:\na = ${a}, b = ${b}, c = ${c}\nCalculamos Δ = ${discriminant}.\nObtenemos dos soluciones reales: ${varName}_1 = ${x1Latex}, ${varName}_2 = ${x2Latex}`,
+			explanationBlocks: [
+				{ type: 'text', content: 'Identificamos los coeficientes de la ecuación cuadrática:' },
+				{ type: 'math', content: coefsStr },
+				{ type: 'text', content: 'Fórmula general de Bhaskara:' },
+				{ type: 'math', content: formulaStr },
+				{ type: 'text', content: 'Sustituimos los coeficientes en la fórmula:' },
+				{ type: 'math', content: subStr },
+				{ type: 'text', content: 'Calculamos el discriminante Δ:' },
+				{ type: 'math', content: discCalcStr },
+				{ type: 'text', content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:' },
+				{ type: 'math', content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}` }
+			],
 			concept: 'Discriminante positivo → Dos raíces reales',
 			difficulty: 9,
 			solutions: [x1, x2],

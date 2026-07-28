@@ -19,6 +19,7 @@
 		is_quadratic: boolean;
 		is_no_solution: boolean;
 		solutions: readonly number[];
+		solutions_latex: readonly string[];
 	} | null>(null);
 
 	let isError = $state(false);
@@ -59,12 +60,14 @@
 			let is_quadratic = false;
 			let is_no_solution = false;
 			let solutions: readonly number[] = [];
+			let solutions_latex: readonly string[] = [];
 			
 			if (steps.length > 0) {
 				const lastStep = steps[steps.length - 1];
 				if (lastStep.title.includes('Bhaskara')) {
 					is_quadratic = true;
 					solutions = lastStep.solutions || [];
+					solutions_latex = lastStep.solutionsLatex || [];
 				}
 				if (lastStep.title.includes('Sin solución — dominio')) {
 					is_no_solution = true;
@@ -77,7 +80,8 @@
 				result_latex,
 				is_quadratic,
 				is_no_solution,
-				solutions
+				solutions,
+				solutions_latex
 			};
 		} catch (err: any) {
 			isError = true;
@@ -238,7 +242,10 @@
 								</div>
 							{:else}
 								{#each data.solutions as sol, i}
-									<MathExpression latex={`x_${i + 1} = ${Number.isInteger(sol) ? sol : parseFloat(sol.toFixed(4))}`} displayMode={true} />
+									<MathExpression
+										latex={`x_${i + 1} = ${data.solutions_latex?.[i] ?? (Number.isInteger(sol) ? sol : parseFloat(sol.toFixed(4)))}`}
+										displayMode={true}
+									/>
 								{/each}
 							{/if}
 						{:else}

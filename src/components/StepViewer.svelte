@@ -30,10 +30,24 @@
 						</span>
 					</div>
 
-					<!-- Explicación (preserva saltos de línea) -->
-					<p class="text-gray-300 mb-6 text-sm leading-relaxed whitespace-pre-line">
-						{step.explanation}
-					</p>
+					<!-- Explicación -->
+					{#if step.explanationBlocks && step.explanationBlocks.length > 0}
+						<div class="space-y-3 mb-6">
+							{#each step.explanationBlocks as block}
+								{#if block.type === 'text'}
+									<p class="text-gray-300 text-sm leading-relaxed">{block.content}</p>
+								{:else if block.type === 'math'}
+									<div class="bg-gray-900/60 rounded-lg py-2 border border-gray-700/40 flex justify-center">
+										<MathExpression latex={block.content} displayMode={true} />
+									</div>
+								{/if}
+							{/each}
+						</div>
+					{:else}
+						<p class="text-gray-300 mb-6 text-sm leading-relaxed whitespace-pre-line">
+							{step.explanation}
+						</p>
+					{/if}
 
 					<!-- Resultado principal: expresión transformada -->
 					{#if step.solutions === undefined}

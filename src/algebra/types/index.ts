@@ -75,11 +75,17 @@ export type Expr =
 	| ParenthesisNode
 	| SqrtNode;
 
+export interface ExplanationBlock {
+	readonly type: 'text' | 'math';
+	readonly content: string;
+}
+
 export interface RuleResult {
 	readonly before: Expr;
 	readonly after: Expr;
 	readonly title: string;
 	readonly explanation: string;
+	readonly explanationBlocks?: readonly ExplanationBlock[];
 	readonly concept: string;
 	readonly difficulty: number;
 	/** Soluciones reales de la ecuación: 2, 1 o 0 valores */
