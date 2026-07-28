@@ -1,20 +1,140 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
 import { createFractionExpr, formatFractionLatex } from '../utils/fraction';
 
-function collectTerms(expr: Expr): Expr[] {
-	if (expr.type === 'Add') return [...collectTerms(expr.left), ...collectTerms(expr.right)];
-	return [expr];
+/**
+ * Calcula el máximo común divisor (MCD).
+ */
+function gcd(a: number, b: number): number {
+	a = Math.abs(a);
+	b = Math.abs(b);
+	while (b !== 0) {
+		const temp = b;
+		b = a % b;
+		a = temp;
+	}
+	return a || 1;
 }
 
-function extractQuadraticCoefs(
-	expr: Expr
-): { a: number; b: number; c: number; varName: string } | null {
-	const terms = collectTerms(expr);
-	let a = 0, b = 0, c = 0;
+/**
+ * Simplifica un radical √d extraiendo el mayor factor cuadrado perfecto k²:
+ * √d = k * √m
+ */
+function simplifySquareRoot(d: number): { k: number; m: number } {
+	let k = 1;
+	let m = d;
+	for (let i = Math.floor(Math.sqrt(d)); i >= 2; i--) {
+		if (d % (i * i) === 0) {
+			k = i;
+			m = d / (i * i);
+			break;
+		}
+	}
+	return { k, m };
+}
+
+/**
+ * Formatea una solución exacta con radicando simplificado en LaTeX:
+ * x = (-b ± k√m) / (2a)
+ */
+function formatRadicalRoot(a: number, b: number, d: number, isPlus: boolean): string {
+	const { k, m } = simplifySquareRoot(d);
+	let N = -b;
+	let K = k;
+	let D = 2 * a;
+
+	if (D < 0) {
+		N = -N;
+		D = -D;
+	}
+
+	const g = gcd(gcd(Math.abs(N), K), D);
+	const Nprime = N / g;
+	const Kprime = K / g;
+	const Dprime = D / g;
+
+	const sign = isPlus ? '+' : '-';
+	const radStr = Kprime === 1 ? `\\sqrt{${m}}` : `${Kprime}\\sqrt{${m}}`;
+
+	if (Nprime === 0) {
+		const prefix = isPlus ? '' : '-';
+		if (Dprime === 1) {
+			return `${prefix}${radStr}`;
+		}
+		return `${prefix}\\frac{${radStr}}{${Dprime}}`;
+	}
+
+	const numStr = `${Nprime} ${sign} ${radStr}`;
+	if (Dprime === 1) {
+		return numStr;
+	}
+	return `\\frac{${numStr}}{${Dprime}}`;
+}
+
+interface QuadraticCoefs {
+	a: number;
+	b: number;
+	c: number;
+	varName: string;
+}
+
+/**
+ * Extrae coeficientes a, b, c de una expresión ax² + bx + c
+ */
+function extractQuadraticCoefs(left: Expr): QuadraticCoefs | null {
+	function collectTerms(expr: Expr): Expr[] {
+		if (expr.type === 'Add') {
+			return [...collectTerms(expr.left), ...collectTerms(expr.right)];
+		}
+		return [expr];
+	}
+
+	const terms = collectTerms(left);
+	let a = 0;
+	let b = 0;
+	let c = 0;
 	let varName: string | null = null;
 
 	for (const term of terms) {
-		// ax^2 → Multiply(Number, Power(Var, 2))
+		// c puro
+		if (term.type === 'Number') {
+			c += term.value;
+			continue;
+		}
+		// x puro
+		if (term.type === 'Variable') {
+			varName = varName ?? term.name;
+			b += 1;
+			continue;
+		}
+		// x^2 puro
+		if (
+			term.type === 'Power' &&
+			term.base.type === 'Variable' &&
+			term.exponent.type === 'Number' &&
+			term.exponent.value === 2
+		) {
+			varName = varName ?? term.base.name;
+			a += 1;
+			continue;
+		}
+		// bx
+		if (term.type === 'Multiply' && term.left.type === 'Number' && term.right.type === 'Variable') {
+			varName = varName ?? term.right.name;
+			b += term.left.value;
+			continue;
+		}
+		// -x → Multiply(-1, Variable)
+		if (
+			term.type === 'Multiply' &&
+			term.left.type === 'Number' &&
+			term.left.value === -1 &&
+			term.right.type === 'Variable'
+		) {
+			varName = varName ?? term.right.name;
+			b += -1;
+			continue;
+		}
+		// ax^2
 		if (
 			term.type === 'Multiply' &&
 			term.left.type === 'Number' &&
@@ -27,36 +147,44 @@ function extractQuadraticCoefs(
 			a += term.left.value;
 			continue;
 		}
-		// x^2 → Power(Var, 2)
-		if (
-			term.type === 'Power' &&
-			term.base.type === 'Variable' &&
-			term.exponent.type === 'Number' &&
-			term.exponent.value === 2
-		) {
-			varName = varName ?? term.base.name;
-			a += 1;
-			continue;
-		}
-		// bx → Multiply(Number, Var)
+		// -ax^2 → Multiply(-1, Multiply(Number, Power(Var, 2)))
 		if (
 			term.type === 'Multiply' &&
 			term.left.type === 'Number' &&
-			term.right.type === 'Variable'
+			term.left.value === -1 &&
+			term.right.type === 'Multiply' &&
+			term.right.left.type === 'Number' &&
+			term.right.right.type === 'Power' &&
+			term.right.right.base.type === 'Variable' &&
+			term.right.right.exponent.type === 'Number' &&
+			term.right.right.exponent.value === 2
 		) {
-			varName = varName ?? term.right.name;
-			b += term.left.value;
+			varName = varName ?? term.right.right.base.name;
+			a += -term.right.left.value;
 			continue;
 		}
-		// x → Var
-		if (term.type === 'Variable') {
-			varName = varName ?? term.name;
-			b += 1;
+		// -x^2 → Multiply(-1, Power(Var, 2))
+		if (
+			term.type === 'Multiply' &&
+			term.left.type === 'Number' &&
+			term.left.value === -1 &&
+			term.right.type === 'Power' &&
+			term.right.base.type === 'Variable' &&
+			term.right.exponent.type === 'Number' &&
+			term.right.exponent.value === 2
+		) {
+			varName = varName ?? term.right.base.name;
+			a += -1;
 			continue;
 		}
-		// c → Number (incluye negativos)
-		if (term.type === 'Number') {
-			c += term.value;
+		// -c → Multiply(-1, Number)
+		if (
+			term.type === 'Multiply' &&
+			term.left.type === 'Number' &&
+			term.left.value === -1 &&
+			term.right.type === 'Number'
+		) {
+			c += -term.right.value;
 			continue;
 		}
 		return null;
@@ -173,10 +301,10 @@ export class QuadraticFormulaRule implements Rule {
 			x1Latex = formatFractionLatex(num1, den);
 			x2Latex = formatFractionLatex(num2, den);
 		} else {
-			x1Expr = { type: 'Number', value: parseFloat(x1.toFixed(6)) };
-			x2Expr = { type: 'Number', value: parseFloat(x2.toFixed(6)) };
-			x1Latex = parseFloat(x1.toFixed(4)).toString();
-			x2Latex = parseFloat(x2.toFixed(4)).toString();
+			x1Latex = formatRadicalRoot(a, b, discriminant, true);
+			x2Latex = formatRadicalRoot(a, b, discriminant, false);
+			x1Expr = { type: 'Variable', name: x1Latex };
+			x2Expr = { type: 'Variable', name: x2Latex };
 		}
 
 		return {

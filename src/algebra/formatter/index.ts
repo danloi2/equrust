@@ -60,8 +60,12 @@ export function formatToLatex(expr: Expr): string {
 			return `${leftStr} \\cdot ${rightStr}`;
 		}
 
-		case 'Divide':
+		case 'Divide': {
+			if (expr.left.type === 'Number' && expr.left.value < 0) {
+				return `-\\frac{${Math.abs(expr.left.value)}}{${formatToLatex(expr.right)}}`;
+			}
 			return `\\frac{${formatToLatex(expr.left)}}{${formatToLatex(expr.right)}}`;
+		}
 
 		case 'Power':
 			return `${formatToLatex(expr.base)}^{${formatToLatex(expr.exponent)}}`;

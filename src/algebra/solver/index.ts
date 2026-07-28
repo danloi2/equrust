@@ -12,6 +12,8 @@ import { ClearDenominatorsRule } from '../rules/clearDenominators';
 import { SquareBothSidesRule } from '../rules/squareBothSides';
 import { SqrtDomainCheckRule } from '../rules/sqrtDomainCheck';
 import { ExpandPowerRule } from '../rules/expandPower';
+import { ReorderTermsRule } from '../rules/reorderTerms';
+import { formatToLatex } from '../formatter/index';
 
 export class Solver {
 	private rules: Rule[];
@@ -25,6 +27,7 @@ export class Solver {
 			new SimplifyParenthesisRule(),  // 3. Eliminar paréntesis redundantes
 			new DistributiveRule(),         // 4a. Propiedad distributiva
 			new ExpandPowerRule(),          // 4b. Expandir (expr)^n → producto repetido
+			new ReorderTermsRule(),         // 4c. Reordenar términos por grado (x² → x → cte)
 			new CombineLikeTermsRule(),     // 5. Agrupar términos semejantes
 			new SqrtDomainCheckRule(),      // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
 			new SquareBothSidesRule(),      // 6b. Elevar al cuadrado ambos lados para quitar raíces
@@ -43,6 +46,7 @@ export class Solver {
 		let ruleApplied = true;
 		let iterations = 0;
 		const maxIterations = 50;
+		const visitedStates = new Set<string>();
 
 		while (ruleApplied && iterations < maxIterations) {
 			ruleApplied = false;
@@ -50,8 +54,15 @@ export class Solver {
 			for (const rule of this.rules) {
 				if (rule.applies(currentExpr)) {
 					const result = rule.apply(currentExpr);
-					// Prevención de bucle infinito: ignorar si el árbol no cambió
+					// Prevención de bucle: ignorar si el árbol no cambió
 					if (result.after === currentExpr) continue;
+
+					// Prevención de ciclo: registrar el estado ANTES + regla aplicada
+					// para evitar que la misma regla aplique al mismo estado dos veces
+					const stateKey = `${rule.name}::${formatToLatex(currentExpr)}`;
+					if (visitedStates.has(stateKey)) continue;
+					visitedStates.add(stateKey);
+
 					steps.push(result);
 					currentExpr = result.after;
 					ruleApplied = true;

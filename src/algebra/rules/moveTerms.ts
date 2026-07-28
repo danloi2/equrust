@@ -1,8 +1,6 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
+import { formatToLatex } from '../formatter/index';
 
-/**
- * Determina si una expresión contiene una variable.
- */
 function containsVariable(expr: Expr): boolean {
 	switch (expr.type) {
 		case 'Variable': return true;
@@ -20,17 +18,14 @@ function containsVariable(expr: Expr): boolean {
 	}
 }
 
-/**
- * Determina si una expresión es puramente constante (sin variables).
- */
 function isConstant(expr: Expr): boolean {
 	return !containsVariable(expr);
 }
 
-/**
- * Recoge los sumandos de una expresión Add en un array plano.
- * Add(Add(a, b), c) → [a, b, c]
- */
+function isZero(expr: Expr): boolean {
+	return expr.type === 'Number' && expr.value === 0;
+}
+
 function collectTerms(expr: Expr): Expr[] {
 	if (expr.type === 'Add') {
 		return [...collectTerms(expr.left), ...collectTerms(expr.right)];
@@ -38,10 +33,6 @@ function collectTerms(expr: Expr): Expr[] {
 	return [expr];
 }
 
-/**
- * Construye un Add encadenado a partir de un array de términos.
- * [a, b, c] → Add(Add(a, b), c)
- */
 function buildAdd(terms: Expr[]): Expr {
 	if (terms.length === 0) return { type: 'Number', value: 0 };
 	if (terms.length === 1) return terms[0];
@@ -57,15 +48,31 @@ function hasQuadraticTerm(expr: Expr): boolean {
 	});
 }
 
+function negateExpr(term: Expr): Expr {
+	if (term.type === 'Number') {
+		return { type: 'Number', value: -term.value };
+	}
+	if (term.type === 'Multiply') {
+		if (term.left.type === 'Number') {
+			if (term.left.value === -1) return term.right;
+			return { type: 'Multiply', left: { type: 'Number', value: -term.left.value }, right: term.right };
+		}
+	}
+	return { type: 'Multiply', left: { type: 'Number', value: -1 }, right: term };
+}
+
 /**
- * Regla: Mover términos en ecuaciones.
- * 
- * En una ecuación A = B:
- * - Los términos constantes del lado izquierdo se pasan al derecho (cambiando signo).
- * - Los términos con variable del lado derecho se pasan al izquierdo (cambiando signo).
- * - Si hay término cuadrático (x^2) en la izquierda, las constantes de la derecha se pasan a la izquierda para igualar a 0.
- * 
- * Esto se hace UN ÚNICO TÉRMINO a la vez para respetar la filosofía pedagógica.
+ * Regla: Transponer términos en ecuaciones (método pedagógico de dos pasos).
+ *
+ * Muestra el paso intermedio ("se suma/resta lo mismo a ambos lados")
+ * mediante explanationBlocks, pero el after es la expresión ya simplificada
+ * para no crear ciclos infinitos.
+ *
+ * Ejemplo: x - 2 = 4
+ *   explanationBlocks muestra: x - 2 + 2 = 4 + 2
+ *   after: x = 6
+ *
+ * Solo mueve UN término a la vez.
  */
 export class MoveTermsRule implements Rule {
 	readonly name = 'move_terms';
@@ -74,13 +81,44 @@ export class MoveTermsRule implements Rule {
 		if (expr.type !== 'Equation') return false;
 		const leftTerms = collectTerms(expr.left);
 		const rightTerms = collectTerms(expr.right);
-		// ¿Hay constante en la izquierda que no sea el único término?
+
+		// Si hay multiplicaciones sin simplificar en cualquier parte del árbol
+		// (ej: x·(-5), 5·(-5), n·(-1·m)), esperar a que SimplifySigns/Constants actúen
+		const hasUnsimplifiedNode = (node: Expr): boolean => {
+			if (node.type === 'Multiply') {
+				const { left, right } = node;
+				// n * (-m) → números directos negativos
+				if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0) return true;
+				// x * (-n)
+				if (left.type === 'Variable' && right.type === 'Number' && right.value < 0) return true;
+				// n * ((-1) * m)  — patrón generado por ExpandPowerRule
+				if (left.type === 'Number' && right.type === 'Multiply' &&
+					right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+				// x * ((-1) * m)  — patrón de x·(-5) via ExpandPowerRule
+				if (left.type === 'Variable' && right.type === 'Multiply' &&
+					right.left.type === 'Number' && right.left.value === -1) return true;
+			}
+			if (node.type === 'Add') return hasUnsimplifiedNode(node.left) || hasUnsimplifiedNode(node.right);
+			return false;
+		};
+		if (hasUnsimplifiedNode(expr.left) || hasUnsimplifiedNode(expr.right)) return false;
+
+		// Constante en la izquierda junto con variable(s) → mover la constante al derecho
 		const hasConstantLeft = leftTerms.length > 1 && leftTerms.some(isConstant);
-		// ¿Hay variable en la derecha?
+
+		// Variable en la derecha → mover la variable al izquierdo
 		const hasVarRight = rightTerms.some(containsVariable);
-		// ¿Hay constante en la derecha cuando la izquierda es cuadrática (x^2)?
-		const hasConstRightForQuad = hasQuadraticTerm(expr.left) && rightTerms.some(isConstant) && !(rightTerms.length === 1 && rightTerms[0].type === 'Number' && rightTerms[0].value === 0);
-		return hasConstantLeft || hasVarRight || hasConstRightForQuad;
+
+		// Constante no-cero en la derecha, SOLO si la izquierda tiene cuadrático sin constante
+		const leftHasQuadratic = leftTerms.some((t) =>
+			(t.type === 'Power' && t.base.type === 'Variable' && t.exponent.type === 'Number' && t.exponent.value === 2) ||
+			(t.type === 'Multiply' && t.left.type === 'Number' && t.right.type === 'Power' && t.right.base.type === 'Variable' && t.right.exponent.type === 'Number' && t.right.exponent.value === 2)
+		);
+		const leftHasNoConst = !leftTerms.some(isConstant);
+		const hasConstRightToMoveForQuad = leftHasQuadratic && leftHasNoConst &&
+			rightTerms.some((t) => isConstant(t) && !isZero(t));
+
+		return hasConstantLeft || hasVarRight || hasConstRightToMoveForQuad;
 	}
 
 	apply(expr: Expr): RuleResult {
@@ -89,87 +127,108 @@ export class MoveTermsRule implements Rule {
 		const leftTerms = collectTerms(expr.left);
 		const rightTerms = collectTerms(expr.right);
 
-		// Primero intentar mover una constante de la izquierda a la derecha
-		const constIdx = leftTerms.findIndex(isConstant);
-		if (constIdx !== -1 && leftTerms.length > 1) {
-			const termToMove = leftTerms[constIdx];
-			const remainingLeft = leftTerms.filter((_, i) => i !== constIdx);
+		// 1. Mover constante del lado izquierdo al lado derecho
+		const constLeftIdx = leftTerms.findIndex(isConstant);
+		if (constLeftIdx !== -1 && leftTerms.length > 1) {
+			const termToMove = leftTerms[constLeftIdx];
+			const negated = negateExpr(termToMove);
 
-			// Negar el término: si es Number, negar su valor; si no, envolverlo en Multiply(-1, ...)
-			const negated: Expr =
-				termToMove.type === 'Number'
-					? { type: 'Number', value: -termToMove.value }
-					: { type: 'Multiply', left: { type: 'Number', value: -1 }, right: termToMove };
-
+			const remainingLeft = leftTerms.filter((_, i) => i !== constLeftIdx);
 			const newLeft = buildAdd(remainingLeft);
 			const newRight = buildAdd([...rightTerms, negated]);
 
-			const termLatex = termToMove.type === 'Number' && termToMove.value > 0
-				? `+${termToMove.value}`
-				: termToMove.type === 'Number'
-					? `${termToMove.value}`
-					: 'término';
+			const opText = termToMove.type === 'Number' && termToMove.value > 0
+				? `Restar ${termToMove.value} a ambos lados`
+				: termToMove.type === 'Number' && termToMove.value < 0
+					? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
+					: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
+
+			const intermediate: Expr = {
+				type: 'Equation',
+				left: { type: 'Add', left: expr.left, right: negated },
+				right: { type: 'Add', left: expr.right, right: negated }
+			};
 
 			return {
 				before: expr,
 				after: { type: 'Equation', left: newLeft, right: newRight },
-				title: 'Mover constante al otro lado',
-				explanation: `Se pasa el término ${termLatex} al lado derecho cambiando su signo. Lo que está en un lado de la ecuación, pasa al otro con signo contrario.`,
-				concept: 'Transposición de términos',
+				title: opText,
+				explanation: `Aplicamos la propiedad de igualdad: lo mismo que hacemos en un lado, lo hacemos en el otro. Restamos ${formatToLatex(termToMove)} a ambos miembros y simplificamos.`,
+				explanationBlocks: [
+					{ type: 'text', content: 'Aplicamos la misma operación a ambos lados:' },
+					{ type: 'math', content: formatToLatex(intermediate) }
+				],
+				concept: 'Propiedad uniforme de la igualdad',
 				difficulty: 4
 			};
 		}
 
-		// Luego intentar mover una variable de la derecha a la izquierda
-		const varIdx = rightTerms.findIndex(containsVariable);
-		if (varIdx !== -1) {
-			const termToMove = rightTerms[varIdx];
-			const remainingRight = rightTerms.filter((_, i) => i !== varIdx);
+		// 2. Mover variable del lado derecho al lado izquierdo
+		const varRightIdx = rightTerms.findIndex(containsVariable);
+		if (varRightIdx !== -1) {
+			const termToMove = rightTerms[varRightIdx];
+			const negated = negateExpr(termToMove);
 
-			const negated: Expr =
-				termToMove.type === 'Multiply' && termToMove.left.type === 'Number'
-					? { type: 'Multiply', left: { type: 'Number', value: -termToMove.left.value }, right: termToMove.right }
-					: termToMove.type === 'Variable'
-						? { type: 'Multiply', left: { type: 'Number', value: -1 }, right: termToMove }
-						: { type: 'Multiply', left: { type: 'Number', value: -1 }, right: termToMove };
-
+			const remainingRight = rightTerms.filter((_, i) => i !== varRightIdx);
 			const newLeft = buildAdd([...leftTerms, negated]);
 			const newRight = buildAdd(remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]);
 
+			const intermediate: Expr = {
+				type: 'Equation',
+				left: { type: 'Add', left: expr.left, right: negated },
+				right: { type: 'Add', left: expr.right, right: negated }
+			};
+
 			return {
 				before: expr,
 				after: { type: 'Equation', left: newLeft, right: newRight },
-				title: 'Mover variable al lado izquierdo',
-				explanation: `Se pasa el término con variable al lado izquierdo cambiando su signo.`,
-				concept: 'Transposición de términos',
+				title: `Restar ${formatToLatex(termToMove)} a ambos lados`,
+				explanation: `Restamos ${formatToLatex(termToMove)} en ambos miembros para agrupar las variables en el lado izquierdo.`,
+				explanationBlocks: [
+					{ type: 'text', content: 'Aplicamos la misma operación a ambos lados:' },
+					{ type: 'math', content: formatToLatex(intermediate) }
+				],
+				concept: 'Propiedad uniforme de la igualdad',
 				difficulty: 4
 			};
 		}
 
-		// Si hay un término cuadrático en la izquierda, mover la constante de la derecha a la izquierda para igualar a 0
-		if (hasQuadraticTerm(expr.left)) {
-			const constRightIdx = rightTerms.findIndex(isConstant);
+		// 3. Mover constante del lado derecho al izquierdo (caso cuadrático)
+		const leftHasNoConst = !leftTerms.some(isConstant);
+		if (leftHasNoConst) {
+			const constRightIdx = rightTerms.findIndex((t) => isConstant(t) && !isZero(t));
 			if (constRightIdx !== -1) {
 				const termToMove = rightTerms[constRightIdx];
-				if (!(rightTerms.length === 1 && termToMove.type === 'Number' && termToMove.value === 0)) {
-					const remainingRight = rightTerms.filter((_, i) => i !== constRightIdx);
-					const negated: Expr =
-						termToMove.type === 'Number'
-							? { type: 'Number', value: -termToMove.value }
-							: { type: 'Multiply', left: { type: 'Number', value: -1 }, right: termToMove };
+				const negated = negateExpr(termToMove);
 
-					const newLeft = buildAdd([...leftTerms, negated]);
-					const newRight = buildAdd(remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]);
+				const remainingRight = rightTerms.filter((_, i) => i !== constRightIdx);
+				const newLeft = buildAdd([...leftTerms, negated]);
+				const newRight = buildAdd(remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]);
 
-					return {
-						before: expr,
-						after: { type: 'Equation', left: newLeft, right: newRight },
-						title: 'Mover constante al lado izquierdo',
-						explanation: 'Para igualar la ecuación cuadrática a cero y aplicar la fórmula de Bhaskara, pasamos la constante al lado izquierdo cambiando su signo.',
-						concept: 'Ecuación cuadrática en forma general (ax² + bx + c = 0)',
-						difficulty: 4
-					};
-				}
+				const intermediate: Expr = {
+					type: 'Equation',
+					left: { type: 'Add', left: expr.left, right: negated },
+					right: { type: 'Add', left: expr.right, right: negated }
+				};
+
+				const opText = termToMove.type === 'Number' && termToMove.value > 0
+					? `Restar ${termToMove.value} a ambos lados`
+					: termToMove.type === 'Number' && termToMove.value < 0
+						? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
+						: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
+
+				return {
+					before: expr,
+					after: { type: 'Equation', left: newLeft, right: newRight },
+					title: opText,
+					explanation: `Pasamos la constante ${formatToLatex(termToMove)} al lado izquierdo cambiando su signo.`,
+					explanationBlocks: [
+						{ type: 'text', content: 'Aplicamos la misma operación a ambos lados:' },
+						{ type: 'math', content: formatToLatex(intermediate) }
+					],
+					concept: 'Propiedad uniforme de la igualdad',
+					difficulty: 4
+				};
 			}
 		}
 

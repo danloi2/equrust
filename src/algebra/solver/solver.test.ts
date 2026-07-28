@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Solver } from './index';
 import { parse } from '../parser';
 import { tokenize } from '../lexer';
+import { formatToLatex } from '../formatter';
 
 describe('Solver', () => {
 	it('solves 2 + 3 * 4 step by step', () => {
@@ -114,6 +115,47 @@ describe('Solver', () => {
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		expect(sols[0]).toBeCloseTo(0.5, 4);
 		expect(sols[1]).toBeCloseTo(2 / 3, 4);
+	});
+
+	it('solves x - 2 = 4 showing equality property in explanation blocks', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x - 2 = 4'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThanOrEqual(1);
+		const moveStep = steps.find((s) => s.title.includes('Sumar 2 a ambos lados'));
+		expect(moveStep).toBeDefined();
+		expect(moveStep?.explanationBlocks).toBeDefined();
+		expect(moveStep?.explanationBlocks?.length).toBeGreaterThan(0);
+	});
+
+	it('reorders polynomial terms by degree before combining', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 + 49 - 14x + x^2 = 25'));
+		const steps = solver.solve(ast);
+
+		const reorderStep = steps.find((s) => s.title.includes('Ordenar términos por grado'));
+		expect(reorderStep).toBeDefined();
+		expect(formatToLatex(reorderStep!.after)).toBe('x^{2} + x^{2} - 14x + 49 = 25');
+	});
+
+	it('returns exact radical roots for quadratic equations with irrational solutions', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 + 4x + 3 = 4'));
+		const steps = solver.solve(ast);
+
+		const lastStep = steps[steps.length - 1];
+		expect(lastStep.title).toContain('Bhaskara');
+		expect(lastStep.solutionsLatex).toEqual(['-2 + \\sqrt{5}', '-2 - \\sqrt{5}']);
+	});
+
+	it('formats negative fractions with the minus sign in front of the fraction', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('4x = -5'));
+		const steps = solver.solve(ast);
+
+		const lastStep = steps[steps.length - 1];
+		expect(formatToLatex(lastStep.after)).toBe('x = -\\frac{5}{4}');
 	});
 });
 

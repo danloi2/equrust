@@ -1,5 +1,6 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
 import { createFractionExpr } from '../utils/fraction';
+import { formatToLatex } from '../formatter/index';
 
 /**
  * Extrae el coeficiente de un término lineal en x: 3x → 3, x → 1, -x → -1
@@ -17,7 +18,7 @@ function extractLinearCoef(expr: Expr): number | null {
  * Regla: Dividir ambos lados por el coeficiente.
  * Aplica en ecuaciones de la forma: kx = C → x = C/k
  * 
- * Para aplicar, el lado izquierdo debe ser ÚNICAMENTE un término con variable (sin sumas).
+ * Muestra explícitamente la división en ambos lados mediante la propiedad uniforme.
  */
 export class DivideBothSidesRule implements Rule {
 	readonly name = 'divide_both_sides';
@@ -52,12 +53,19 @@ export class DivideBothSidesRule implements Rule {
 			newRight = { type: 'Divide', left: expr.right, right: { type: 'Number', value: coef } };
 		}
 
+		const leftLatex = formatToLatex(expr.left);
+		const rightLatex = formatToLatex(expr.right);
+
 		return {
 			before: expr,
 			after: { type: 'Equation', left: varNode, right: newRight },
 			title: `Dividir ambos lados por ${coef}`,
 			explanation: `Para aislar la variable, dividimos ambos lados de la ecuación por ${coef}, el coeficiente que acompaña a la incógnita.`,
-			concept: 'Propiedad de igualdad de la división',
+			explanationBlocks: [
+				{ type: 'text', content: 'Aplicamos la misma operación a ambos lados:' },
+				{ type: 'math', content: `\\frac{${leftLatex}}{${coef}} = \\frac{${rightLatex}}{${coef}}` }
+			],
+			concept: 'Propiedad uniforme de la división',
 			difficulty: 5,
 			terminal: true
 		};

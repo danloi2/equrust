@@ -49,5 +49,8 @@ export function formatFractionLatex(num: number, den: number): string {
 	const d = den / g;
 
 	if (d === 1) return `${n}`;
+	if (n < 0) {
+		return `-\\frac{${Math.abs(n)}}{${d}}`;
+	}
 	return `\\frac{${n}}{${d}}`;
 }

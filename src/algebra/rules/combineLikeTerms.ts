@@ -2,117 +2,192 @@ import type { Expr, Rule, RuleResult } from '../types/index';
 import { mapAST } from '../utils/ast';
 
 /**
- * Extrae el coeficiente de un término de variable:
- * - 3x → {coef: 3, varName: 'x'}
- * - x  → {coef: 1, varName: 'x'}
- * - (-1)*x → {coef: -1, varName: 'x'}
- * - -x → (Multiply(-1, x)) → {coef: -1, varName: 'x'}
+ * Describe un término "semejante": tiene la misma clave (variable + exponente)
+ * Ejemplos:
+ *   x     → { coef: 1,  key: 'x^1', varName: 'x', exp: 1 }
+ *   3x    → { coef: 3,  key: 'x^1', varName: 'x', exp: 1 }
+ *   x²    → { coef: 1,  key: 'x^2', varName: 'x', exp: 2 }
+ *   2x²   → { coef: 2,  key: 'x^2', varName: 'x', exp: 2 }
+ *   -x²   → { coef: -1, key: 'x^2', varName: 'x', exp: 2 }
  */
-function extractVarTerm(node: Expr): { coef: number; varName: string } | null {
-	if (node.type === 'Variable') return { coef: 1, varName: node.name };
+interface LikeTerm {
+	coef: number;
+	key: string;
+	varName: string;
+	exp: number;
+}
+
+function extractLikeTerm(node: Expr): LikeTerm | null {
+	// Variable: x → coef=1, exp=1
+	if (node.type === 'Variable') {
+		return { coef: 1, key: `${node.name}^1`, varName: node.name, exp: 1 };
+	}
+
+	// Power: x^n → coef=1, exp=n
+	if (
+		node.type === 'Power' &&
+		node.base.type === 'Variable' &&
+		node.exponent.type === 'Number'
+	) {
+		return {
+			coef: 1,
+			key: `${node.base.name}^${node.exponent.value}`,
+			varName: node.base.name,
+			exp: node.exponent.value
+		};
+	}
+
+	// Multiply: c * x → coef=c, exp=1
 	if (node.type === 'Multiply') {
 		if (node.left.type === 'Number' && node.right.type === 'Variable') {
-			return { coef: node.left.value, varName: node.right.name };
+			return { coef: node.left.value, key: `${node.right.name}^1`, varName: node.right.name, exp: 1 };
 		}
 		if (node.right.type === 'Number' && node.left.type === 'Variable') {
-			return { coef: node.right.value, varName: node.left.name };
+			return { coef: node.right.value, key: `${node.left.name}^1`, varName: node.left.name, exp: 1 };
+		}
+		// c * x^n → coef=c, exp=n
+		if (
+			node.left.type === 'Number' &&
+			node.right.type === 'Power' &&
+			node.right.base.type === 'Variable' &&
+			node.right.exponent.type === 'Number'
+		) {
+			return {
+				coef: node.left.value,
+				key: `${node.right.base.name}^${node.right.exponent.value}`,
+				varName: node.right.base.name,
+				exp: node.right.exponent.value
+			};
+		}
+		// x^n * c
+		if (
+			node.right.type === 'Number' &&
+			node.left.type === 'Power' &&
+			node.left.base.type === 'Variable' &&
+			node.left.exponent.type === 'Number'
+		) {
+			return {
+				coef: node.right.value,
+				key: `${node.left.base.name}^${node.left.exponent.value}`,
+				varName: node.left.base.name,
+				exp: node.left.exponent.value
+			};
 		}
 	}
+
 	return null;
 }
 
+function buildTerm(t: LikeTerm): Expr {
+	const base: Expr = { type: 'Variable', name: t.varName };
+	const power: Expr =
+		t.exp === 1
+			? base
+			: { type: 'Power', base, exponent: { type: 'Number', value: t.exp } };
+
+	if (t.coef === 1) return power;
+	if (t.coef === -1) return { type: 'Multiply', left: { type: 'Number', value: -1 }, right: power };
+	return { type: 'Multiply', left: { type: 'Number', value: t.coef }, right: power };
+}
+
+function collectTerms(expr: Expr): Expr[] {
+	if (expr.type === 'Add') {
+		return [...collectTerms(expr.left), ...collectTerms(expr.right)];
+	}
+	return [expr];
+}
+
+function buildAdd(terms: Expr[]): Expr {
+	if (terms.length === 0) return { type: 'Number', value: 0 };
+	if (terms.length === 1) return terms[0];
+	return terms.slice(1).reduce<Expr>((acc, t) => ({ type: 'Add', left: acc, right: t }), terms[0]);
+}
+
+function combineAllLikeTermsInSide(expr: Expr): { newExpr: Expr; didCombine: boolean } {
+	const terms = collectTerms(expr);
+	if (terms.length <= 1) return { newExpr: expr, didCombine: false };
+
+	const groups = new Map<string, LikeTerm[]>();
+
+	for (const term of terms) {
+		const like = extractLikeTerm(term);
+		if (like) {
+			const existing = groups.get(like.key) || [];
+			existing.push(like);
+			groups.set(like.key, existing);
+		}
+	}
+
+	let didCombine = false;
+	const resultTerms: Expr[] = [];
+
+	for (const term of terms) {
+		const like = extractLikeTerm(term);
+		if (like) {
+			const group = groups.get(like.key);
+			if (group) {
+				if (group.length > 1) {
+					didCombine = true;
+					const totalCoef = group.reduce((sum, t) => sum + t.coef, 0);
+					if (totalCoef !== 0) {
+						resultTerms.push(buildTerm({ ...group[0], coef: totalCoef }));
+					}
+				} else {
+					resultTerms.push(buildTerm(group[0]));
+				}
+				groups.delete(like.key);
+			}
+		} else {
+			resultTerms.push(term);
+		}
+	}
+
+	if (!didCombine) {
+		return { newExpr: expr, didCombine: false };
+	}
+
+	return {
+		newExpr: buildAdd(resultTerms),
+		didCombine: true
+	};
+}
+
 /**
- * Combinar términos semejantes: 2x + 3x → 5x, x - x → 0
- * Solo opera en nodos Add de primer nivel (no anidados) para respetar la pedagogía de un paso a la vez.
+ * Agrupar términos semejantes en un único paso:
+ * Combina todos los términos que comparten la misma variable y exponente
+ * (ej: 2x² + x + x + x - 14x + 54 = x + 25 → 2x² - 11x + 54 = x + 25)
  */
 export class CombineLikeTermsRule implements Rule {
 	readonly name = 'combine_like_terms';
 
 	applies(expr: Expr): boolean {
-		let can = false;
-		mapAST(expr, (node) => {
-			if (this._findCombineable(node)) can = true;
-			return null;
-		});
-		return can;
-	}
-
-	private _findCombineable(node: Expr): 'simple' | 'left_nested_1' | 'left_nested_2' | 'right_nested_1' | 'right_nested_2' | null {
-		if (node.type !== 'Add') return null;
-		
-		const leftTerm = extractVarTerm(node.left);
-		const rightTerm = extractVarTerm(node.right);
-		
-		// Caso simple: ax + bx
-		if (leftTerm && rightTerm && leftTerm.varName === rightTerm.varName) return 'simple';
-
-		// Casos anidados: Add(Add(L1, L2), R)
-		if (node.left.type === 'Add' && rightTerm) {
-			const l1Term = extractVarTerm(node.left.left);
-			if (l1Term && l1Term.varName === rightTerm.varName) return 'left_nested_1';
-			
-			const l2Term = extractVarTerm(node.left.right);
-			if (l2Term && l2Term.varName === rightTerm.varName) return 'left_nested_2';
+		if (expr.type === 'Equation') {
+			return combineAllLikeTermsInSide(expr.left).didCombine || combineAllLikeTermsInSide(expr.right).didCombine;
 		}
-
-		// Casos anidados: Add(L, Add(R1, R2))
-		if (node.right.type === 'Add' && leftTerm) {
-			const r1Term = extractVarTerm(node.right.left);
-			if (r1Term && r1Term.varName === leftTerm.varName) return 'right_nested_1';
-			
-			const r2Term = extractVarTerm(node.right.right);
-			if (r2Term && r2Term.varName === leftTerm.varName) return 'right_nested_2';
-		}
-
-		return null;
-	}
-
-	private _combine(t1: ReturnType<typeof extractVarTerm>, t2: ReturnType<typeof extractVarTerm>): Expr {
-		const newCoef = t1!.coef + t2!.coef;
-		if (newCoef === 0) return { type: 'Number', value: 0 };
-		if (newCoef === 1) return { type: 'Variable', name: t1!.varName };
-		return { type: 'Multiply', left: { type: 'Number', value: newCoef }, right: { type: 'Variable', name: t1!.varName } };
+		return combineAllLikeTermsInSide(expr).didCombine;
 	}
 
 	apply(expr: Expr): RuleResult {
-		let applied = false;
-		const after = mapAST(expr, (node) => {
-			if (applied) return null;
-			const matchType = this._findCombineable(node);
-			if (!matchType) return null;
-			if (node.type !== 'Add') return null;
+		if (expr.type === 'Equation') {
+			const leftRes = combineAllLikeTermsInSide(expr.left);
+			const rightRes = combineAllLikeTermsInSide(expr.right);
 
-			applied = true;
+			return {
+				before: expr,
+				after: { type: 'Equation', left: leftRes.newExpr, right: rightRes.newExpr },
+				title: 'Agrupar términos semejantes',
+				explanation: 'Se suman los coeficientes de los términos semejantes (que comparten la misma variable y exponente) en un solo paso.',
+				concept: 'Términos semejantes',
+				difficulty: 3
+			};
+		}
 
-			if (matchType === 'simple') {
-				return this._combine(extractVarTerm(node.left), extractVarTerm(node.right));
-			}
-
-			if (matchType === 'left_nested_1') {
-				const innerAdd = node.left as Extract<Expr, { type: 'Add' }>;
-				return { type: 'Add', left: this._combine(extractVarTerm(innerAdd.left), extractVarTerm(node.right)), right: innerAdd.right };
-			}
-			if (matchType === 'left_nested_2') {
-				const innerAdd = node.left as Extract<Expr, { type: 'Add' }>;
-				return { type: 'Add', left: innerAdd.left, right: this._combine(extractVarTerm(innerAdd.right), extractVarTerm(node.right)) };
-			}
-			if (matchType === 'right_nested_1') {
-				const innerAdd = node.right as Extract<Expr, { type: 'Add' }>;
-				return { type: 'Add', left: this._combine(extractVarTerm(node.left), extractVarTerm(innerAdd.left)), right: innerAdd.right };
-			}
-			if (matchType === 'right_nested_2') {
-				const innerAdd = node.right as Extract<Expr, { type: 'Add' }>;
-				return { type: 'Add', left: innerAdd.left, right: this._combine(extractVarTerm(node.left), extractVarTerm(innerAdd.right)) };
-			}
-
-			return null;
-		});
-
+		const res = combineAllLikeTermsInSide(expr);
 		return {
 			before: expr,
-			after,
+			after: res.newExpr,
 			title: 'Agrupar términos semejantes',
-			explanation: `Se suman los coeficientes de los términos que contienen la misma variable.`,
+			explanation: 'Se suman los coeficientes de todos los términos semejantes en un solo paso.',
 			concept: 'Términos semejantes',
 			difficulty: 3
 		};

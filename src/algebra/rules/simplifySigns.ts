@@ -34,6 +34,20 @@ export class SimplifySignsRule implements Rule {
 			left.type === 'Number' && left.value === -1 &&
 			right.type === 'Multiply' && right.left.type === 'Number' && right.left.value === -1
 		) return true;
+		// Variable * (-Number) → -n * Variable
+		if (left.type === 'Variable' && right.type === 'Number' && right.value < 0) return true;
+		// Number * (-Number) → -(n*m)
+		if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0) return true;
+		// Variable * ((-1) * Number) → -n * Variable  (patrón de ExpandPowerRule)
+		if (left.type === 'Variable' && right.type === 'Multiply' &&
+			right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+		// Number * ((-1) * Number) → -(n*m)  (patrón de ExpandPowerRule: 5*(-1*5))
+		if (left.type === 'Number' && left.value > 0 && right.type === 'Multiply' &&
+			right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+		// 1 * expr → expr
+		if (left.type === 'Number' && left.value === 1) return true;
+		// expr * 1 → expr
+		if (right.type === 'Number' && right.value === 1) return true;
 		return false;
 	}
 
@@ -47,6 +61,14 @@ export class SimplifySignsRule implements Rule {
 			const { left, right } = node;
 			applied = true;
 
+			// 1 * expr → expr
+			if (left.type === 'Number' && left.value === 1) {
+				return right;
+			}
+			// expr * 1 → expr
+			if (right.type === 'Number' && right.value === 1) {
+				return left;
+			}
 			// (-1) * (-1) → 1
 			if (left.type === 'Number' && left.value === -1 && right.type === 'Number' && right.value === -1) {
 				return { type: 'Number', value: 1 };
@@ -65,6 +87,24 @@ export class SimplifySignsRule implements Rule {
 				right.type === 'Multiply' && right.left.type === 'Number' && right.left.value === -1
 			) {
 				return right.right;
+			}
+			// Variable * (-Number) → Multiply(-n, Variable)  ej: x * (-5) → -5x
+			if (left.type === 'Variable' && right.type === 'Number' && right.value < 0) {
+				return { type: 'Multiply', left: { type: 'Number', value: right.value }, right: left };
+			}
+			// Number * (-Number) → Number  ej: 5 * (-5) → -25
+			if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0) {
+				return { type: 'Number', value: left.value * right.value };
+			}
+			// Variable * ((-1) * Number) → (-n) * Variable  ej: x * (-1*5) → -5x
+			if (left.type === 'Variable' && right.type === 'Multiply' &&
+				right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') {
+				return { type: 'Multiply', left: { type: 'Number', value: -right.right.value }, right: left };
+			}
+			// Number * ((-1) * Number) → Number  ej: 5 * (-1*5) → -25
+			if (left.type === 'Number' && left.value > 0 && right.type === 'Multiply' &&
+				right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') {
+				return { type: 'Number', value: -(left.value * right.right.value) };
 			}
 			return null;
 		});
