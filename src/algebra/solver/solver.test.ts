@@ -86,5 +86,34 @@ describe('Solver', () => {
 		expect(sols[0]).toBeCloseTo(-1, 4);
 		expect(sols[1]).toBeCloseTo(3, 4);
 	});
+
+	it('solves x^2 - \\frac{7}{6}x + \\frac{1}{3} = 0 without infinite loop', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 - \\frac{7}{6}x + \\frac{1}{3} = 0'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Bhaskara');
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		// x^2 - 7/6 x + 1/3 = 0 -> 6x^2 - 7x + 2 = 0 -> (2x-1)(3x-2) = 0 -> x = 1/2 (0.5) and x = 2/3 (0.666666...)
+		expect(sols[0]).toBeCloseTo(0.5, 4);
+		expect(sols[1]).toBeCloseTo(2 / 3, 4);
+	});
+
+	it('solves x^2 - 7/6x + 1/3 = 0 (plain division syntax)', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 - 7/6*x + 1/3 = 0'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Bhaskara');
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(0.5, 4);
+		expect(sols[1]).toBeCloseTo(2 / 3, 4);
+	});
 });
 

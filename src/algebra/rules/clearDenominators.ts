@@ -35,6 +35,12 @@ function lcm(a: number, b: number): number {
 	return (a / gcd(a, b)) * b;
 }
 
+function hasDenom(expr: Expr): boolean {
+	const denoms = new Set<number>();
+	collectDenomsInner(expr, denoms);
+	return denoms.size > 0;
+}
+
 function multiplyBy(expr: Expr, factor: number): Expr {
 	if (factor === 1) return expr;
 
@@ -52,22 +58,26 @@ function multiplyBy(expr: Expr, factor: number): Expr {
 			}
 			return { type: 'Multiply', left: expr, right: { type: 'Number', value: factor } };
 		case 'Multiply':
-			if (expr.left.type === 'Number' && expr.right.type === 'Divide') {
-				// Para Multiply( -1, Divide(...) ) -> absorber el factor en el Divide (cancelar denominador)
-				return { type: 'Multiply', left: expr.left, right: multiplyBy(expr.right, factor) };
-			}
-			if (expr.right.type === 'Number' && expr.left.type === 'Divide') {
+			if (hasDenom(expr.left)) {
 				return { type: 'Multiply', left: multiplyBy(expr.left, factor), right: expr.right };
+			}
+			if (hasDenom(expr.right)) {
+				return { type: 'Multiply', left: expr.left, right: multiplyBy(expr.right, factor) };
 			}
 			if (expr.left.type === 'Number') {
 				return { type: 'Multiply', left: { type: 'Number', value: expr.left.value * factor }, right: expr.right };
 			} else if (expr.right.type === 'Number') {
 				return { type: 'Multiply', left: expr.left, right: { type: 'Number', value: expr.right.value * factor } };
 			} else {
-				return { type: 'Multiply', left: expr, right: { type: 'Number', value: factor } };
+				return { type: 'Multiply', left: { type: 'Number', value: factor }, right: expr };
 			}
 		case 'Number':
 			return { type: 'Number', value: expr.value * factor };
+		case 'Parenthesis':
+			if (hasDenom(expr.inner)) {
+				return { type: 'Parenthesis', inner: multiplyBy(expr.inner, factor) };
+			}
+			return { type: 'Multiply', left: { type: 'Number', value: factor }, right: expr };
 		default:
 			return { type: 'Multiply', left: { type: 'Number', value: factor }, right: expr };
 	}
