@@ -7,7 +7,8 @@
 	import StepViewer from '../components/StepViewer.svelte';
 	import MathExpression from '../components/MathExpression.svelte';
 
-	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, ChevronRight, ArrowDown } from 'lucide-svelte';
+	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, ChevronRight, ArrowDown } from '@lucide/svelte';
+	import pkg from '../../package.json';
 
 	let expression = $state('');
 	let solver = new Solver();
@@ -116,8 +117,8 @@
 				<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(139,92,246,0.4);">
 					<Sigma size={24} color="white" />
 				</div>
-				<span style="font-size: 1rem; font-weight: 600; color: var(--accent-light); letter-spacing: 2px; text-transform: uppercase;">
-					Algebra Tutor
+				<span style="font-size: 1rem; font-weight: 600; color: var(--accent-light); letter-spacing: 2px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px;">
+					Algebra Tutor <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; background: rgba(139,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.4); text-transform: none; font-weight: 500; font-family: monospace;">v{pkg.version}</span>
 				</span>
 			</div>
 			<h1 style="font-size: clamp(2.4rem, 6vw, 3.5rem); font-weight: 700; line-height: 1.1; margin-bottom: 16px;">
