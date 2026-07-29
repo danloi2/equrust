@@ -302,19 +302,94 @@ export class QuadraticFormulaRule implements Rule {
 		let x1Latex: string;
 		let x2Latex: string;
 
+		// Bloques que van DESPUÉS de mostrar las fracciones sin simplificar
+		const simplificationBlocks: Array<{ type: 'text' | 'math'; content: string }> = [];
+		// Bloque con las soluciones finales simplificadas
+		const finalResultBlocks: Array<{ type: 'text' | 'math'; content: string }> = [];
+
 		if (Number.isInteger(sqrtD)) {
 			const num1 = -b + sqrtD;
 			const num2 = -b - sqrtD;
 			const den = 2 * a;
-			x1Expr = createFractionExpr(num1, den);
-			x2Expr = createFractionExpr(num2, den);
+
+			// Fracciones SIN simplificar (lo que sale directamente de la fórmula)
+			const rawLatex1 = den === 1 ? `${num1}` : `\\frac{${num1}}{${den}}`;
+			const rawLatex2 = den === 1 ? `${num2}` : `\\frac{${num2}}{${den}}`;
+
 			x1Latex = formatFractionLatex(num1, den);
 			x2Latex = formatFractionLatex(num2, den);
+			x1Expr = createFractionExpr(num1, den);
+			x2Expr = createFractionExpr(num2, den);
+
+			const g1 = gcd(Math.abs(num1), Math.abs(den));
+			const g2 = gcd(Math.abs(num2), Math.abs(den));
+			const needsSimplification = (g1 > 1 && rawLatex1 !== x1Latex) || (g2 > 1 && rawLatex2 !== x2Latex);
+
+			if (needsSimplification) {
+				// Mostrar primero las fracciones en bruto
+				simplificationBlocks.push({
+					type: 'text',
+					content: 'Como Δ > 0, obtenemos dos soluciones (sin simplificar):'
+				});
+				simplificationBlocks.push({
+					type: 'math',
+					content: `${varName}_1 = ${rawLatex1}, \\quad ${varName}_2 = ${rawLatex2}`
+				});
+
+				// Simplificación de x₁
+				if (g1 > 1 && rawLatex1 !== x1Latex) {
+					simplificationBlocks.push({
+						type: 'text',
+						content: `Simplificamos ${varName}\u2081 — MCD(${Math.abs(num1)}, ${Math.abs(den)}) = ${g1}:`
+					});
+					simplificationBlocks.push({
+						type: 'math',
+						content: `${varName}_1 = ${rawLatex1} = ${x1Latex}`
+					});
+				}
+
+				// Simplificación de x₂
+				if (g2 > 1 && rawLatex2 !== x2Latex) {
+					simplificationBlocks.push({
+						type: 'text',
+						content: `Simplificamos ${varName}\u2082 — MCD(${Math.abs(num2)}, ${Math.abs(den)}) = ${g2}:`
+					});
+					simplificationBlocks.push({
+						type: 'math',
+						content: `${varName}_2 = ${rawLatex2} = ${x2Latex}`
+					});
+				}
+
+				// Resultado final
+				finalResultBlocks.push({ type: 'text', content: 'Soluciones definitivas:' });
+				finalResultBlocks.push({
+					type: 'math',
+					content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}`
+				});
+			} else {
+				// Sin simplificación: flujo directo
+				simplificationBlocks.push({
+					type: 'text',
+					content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:'
+				});
+				simplificationBlocks.push({
+					type: 'math',
+					content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}`
+				});
+			}
 		} else {
 			x1Latex = formatRadicalRoot(a, b, discriminant, true);
 			x2Latex = formatRadicalRoot(a, b, discriminant, false);
 			x1Expr = { type: 'Variable', name: x1Latex };
 			x2Expr = { type: 'Variable', name: x2Latex };
+			simplificationBlocks.push({
+				type: 'text',
+				content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:'
+			});
+			simplificationBlocks.push({
+				type: 'math',
+				content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}`
+			});
 		}
 
 		return {
@@ -337,8 +412,8 @@ export class QuadraticFormulaRule implements Rule {
 				{ type: 'math', content: discCalcStr },
 				{ type: 'text', content: 'Con los valores evaluados:' },
 				{ type: 'math', content: computedStr },
-				{ type: 'text', content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:' },
-				{ type: 'math', content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}` }
+				...simplificationBlocks,
+				...finalResultBlocks
 			],
 			concept: 'Discriminante positivo → Dos raíces reales',
 			difficulty: 9,

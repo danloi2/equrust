@@ -1,5 +1,6 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
 import { mapAST } from '../utils/ast';
+import { gcd } from '../utils/fraction';
 
 function getConstantValue(node: Expr): number | null {
 	if (node.type === 'Number') return node.value;
@@ -50,6 +51,7 @@ export class SimplifyConstantsRule implements Rule {
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
 				if (node.left.value % node.right.value === 0) canApply = true;
+				else if (gcd(Math.abs(node.left.value), Math.abs(node.right.value)) > 1) canApply = true;
 			}
 			if (node.type === 'Power' && node.base.type === 'Number' && node.exponent.type === 'Number') canApply = true;
 			if (
@@ -66,6 +68,10 @@ export class SimplifyConstantsRule implements Rule {
 
 	apply(expr: Expr): RuleResult {
 		let applied = false;
+		let isFractionReduction = false;
+		let fractionGcd = 0;
+		let fractionNum = 0;
+		let fractionDen = 0;
 		
 		const after = mapAST(expr, (node) => {
 			if (applied) return null;
@@ -133,9 +139,23 @@ export class SimplifyConstantsRule implements Rule {
 				}
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
-				if (node.left.value % node.right.value === 0) {
+				const num = node.left.value;
+				const den = node.right.value;
+				if (num % den === 0) {
 					applied = true;
-					return { type: 'Number', value: node.left.value / node.right.value };
+					return { type: 'Number', value: num / den };
+				}
+				const g = gcd(Math.abs(num), Math.abs(den));
+				if (g > 1) {
+					applied = true;
+					isFractionReduction = true;
+					fractionGcd = g;
+					fractionNum = num;
+					fractionDen = den;
+					const newNum = num / g;
+					const newDen = den / g;
+					if (newDen === 1) return { type: 'Number', value: newNum };
+					return { type: 'Divide', left: { type: 'Number', value: newNum }, right: { type: 'Number', value: newDen } };
 				}
 			}
 			if (node.type === 'Power' && node.base.type === 'Number' && node.exponent.type === 'Number') {
@@ -161,10 +181,12 @@ export class SimplifyConstantsRule implements Rule {
 		return {
 			before: expr,
 			after,
-			title: 'Simplificar constantes',
-			explanation: 'Se ha realizado la operación aritmética entre las dos constantes.',
-			concept: 'Aritmética básica',
-			difficulty: 1
+			title: isFractionReduction ? 'Simplificar fracción' : 'Simplificar constantes',
+			explanation: isFractionReduction
+				? `El MCD de ${Math.abs(fractionNum)} y ${Math.abs(fractionDen)} es ${fractionGcd}. Dividimos numerador y denominador por ${fractionGcd} para obtener la fracción en su mínima expresión.`
+				: 'Se ha realizado la operación aritmética entre las dos constantes.',
+			concept: isFractionReduction ? 'Simplificación de fracciones' : 'Aritmética básica',
+			difficulty: isFractionReduction ? 2 : 1
 		};
 	}
 }

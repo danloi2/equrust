@@ -6,9 +6,11 @@
 	import type { RuleResult } from '../algebra/types';
 	import StepViewer from '../components/StepViewer.svelte';
 	import MathExpression from '../components/MathExpression.svelte';
+	import MathToolbar from '../components/MathToolbar.svelte';
 
-	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, FlaskConical } from '@lucide/svelte';
+	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, FlaskConical, Keyboard } from '@lucide/svelte';
 	import pkg from '../../package.json';
+
 
 	let expression = $state('');
 	const solver = new Solver();
@@ -198,6 +200,57 @@
 	let livePreviewLatex = $derived(getLivePreviewLatex(expression));
 
 
+	let isKeyboardOpen = $state(false);
+
+	function handleInsertSymbol(textToInsert: string, cursorOffset = 0) {
+		const inputEl = document.getElementById('expression-input') as HTMLInputElement | null;
+		if (!inputEl) {
+			expression += textToInsert;
+			return;
+		}
+		const start = inputEl.selectionStart ?? expression.length;
+		const end = inputEl.selectionEnd ?? expression.length;
+		expression = expression.slice(0, start) + textToInsert + expression.slice(end);
+
+		setTimeout(() => {
+			inputEl.focus();
+			const newPos = start + textToInsert.length + cursorOffset;
+			inputEl.setSelectionRange(newPos, newPos);
+		}, 10);
+	}
+
+	function handleBackspace() {
+		const inputEl = document.getElementById('expression-input') as HTMLInputElement | null;
+		if (!inputEl) {
+			expression = expression.slice(0, -1);
+			return;
+		}
+		const start = inputEl.selectionStart ?? expression.length;
+		const end = inputEl.selectionEnd ?? expression.length;
+		if (start !== end) {
+			expression = expression.slice(0, start) + expression.slice(end);
+			setTimeout(() => {
+				inputEl.focus();
+				inputEl.setSelectionRange(start, start);
+			}, 10);
+		} else if (start > 0) {
+			expression = expression.slice(0, start - 1) + expression.slice(start);
+			setTimeout(() => {
+				inputEl.focus();
+				inputEl.setSelectionRange(start - 1, start - 1);
+			}, 10);
+		}
+	}
+
+	function handleClear() {
+		expression = '';
+		reset();
+		const inputEl = document.getElementById('expression-input') as HTMLInputElement | null;
+		if (inputEl) {
+			inputEl.focus();
+		}
+	}
+
 	let hasSteps = $derived(data && data.steps.length > 0);
 	let isAlreadySimplified = $derived(data && data.steps.length === 0);
 </script>
@@ -226,7 +279,17 @@
 
 		<!-- Input -->
 		<div>
-			<div class="section-label">Ecuación</div>
+			<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+				<div class="section-label" style="margin-bottom:0;">Ecuación</div>
+				<button
+					type="button"
+					onclick={() => (isKeyboardOpen = !isKeyboardOpen)}
+					style="display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--accent-light);font-size:0.7rem;font-weight:600;cursor:pointer;transition:background 0.2s;"
+				>
+					<Keyboard size={12} />
+					{isKeyboardOpen ? 'Ocultar teclado' : 'Teclado táctil'}
+				</button>
+			</div>
 			<form onsubmit={handleSubmit} style="display:flex;flex-direction:column;gap:12px;">
 				<div class="input-card">
 					<input
@@ -241,16 +304,20 @@
 						spellcheck="false"
 					/>
 				</div>
-				{#if livePreviewLatex}
-					<div class="anim-fade-up" style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:var(--radius-sm);padding:8px 12px;display:flex;flex-direction:column;gap:4px;">
-						<span style="font-size:0.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-light);">Vista previa</span>
-						<div class="notranslate" translate="no" style="overflow-x:auto;">
-							<MathExpression latex={livePreviewLatex} displayMode={false} />
-						</div>
-					</div>
+
+				<!-- Visual Math Keyboard / Palette -->
+				{#if isKeyboardOpen}
+					<MathToolbar
+						onInsert={handleInsertSymbol}
+						onBackspace={handleBackspace}
+						onClear={handleClear}
+						onSolve={() => handleSubmit()}
+					/>
 				{/if}
+
 				<button
 					id="solve-button"
+
 					type="submit"
 					class="solve-btn"
 					disabled={!expression.trim()}
@@ -260,6 +327,7 @@
 				</button>
 			</form>
 		</div>
+
 
 		<!-- Examples -->
 		<div>

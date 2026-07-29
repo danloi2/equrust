@@ -1,5 +1,4 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
-import { createFractionExpr } from '../utils/fraction';
 import { formatToLatex } from '../formatter/index';
 
 /**
@@ -18,7 +17,8 @@ function extractLinearCoef(expr: Expr): number | null {
  * Regla: Dividir ambos lados por el coeficiente.
  * Aplica en ecuaciones de la forma: kx = C → x = C/k
  * 
- * Muestra explícitamente la división en ambos lados mediante la propiedad uniforme.
+ * Emite siempre la fracción sin simplificar (C/k).
+ * La simplificación queda a cargo de SimplifyConstantsRule en el siguiente paso.
  */
 export class DivideBothSidesRule implements Rule {
 	readonly name = 'divide_both_sides';
@@ -42,10 +42,19 @@ export class DivideBothSidesRule implements Rule {
 					? expr.left.left
 					: expr.left;
 
-		// Derecha: C / coef — si son enteros, convertir a fracción simplificada
+		// Derecha: emitir siempre como Divide para que el siguiente paso pueda simplificar
 		let newRight: Expr;
 		if (expr.right.type === 'Number' && Number.isInteger(expr.right.value) && Number.isInteger(coef)) {
-			newRight = createFractionExpr(expr.right.value, coef);
+			const num = expr.right.value;
+			const den = coef;
+			if (num % den === 0) {
+				// División exacta: simplificar directamente (no hay fracción que reducir)
+				newRight = { type: 'Number', value: num / den };
+			} else {
+				// Fracción irreducible o reducible: dejar SIN simplificar
+				// SimplifyConstantsRule la reducirá por MCD en el siguiente paso
+				newRight = { type: 'Divide', left: { type: 'Number', value: num }, right: { type: 'Number', value: den } };
+			}
 		} else if (expr.right.type === 'Number') {
 			const result = expr.right.value / coef;
 			newRight = { type: 'Number', value: result };
@@ -66,8 +75,7 @@ export class DivideBothSidesRule implements Rule {
 				{ type: 'math', content: `\\frac{${leftLatex}}{${coef}} = \\frac{${rightLatex}}{${coef}}` }
 			],
 			concept: 'Propiedad uniforme de la división',
-			difficulty: 5,
-			terminal: true
+			difficulty: 5
 		};
 	}
 }
