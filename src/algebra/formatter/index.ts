@@ -28,7 +28,9 @@ export function formatToLatex(expr: Expr): string {
 				if (right.left.value === -1) {
 					return `${formatToLatex(left)} - ${innerStr}`;
 				} else {
-					return `${formatToLatex(left)} - ${Math.abs(right.left.value)}${inner.type === 'Variable' ? '' : ' \\cdot '}${innerStr}`;
+					// número * variable/potencia → sin punto (2x, 3x²)
+					const needsDot = inner.type !== 'Variable' && inner.type !== 'Power';
+					return `${formatToLatex(left)} - ${Math.abs(right.left.value)}${needsDot ? ' \\cdot ' : ''}${innerStr}`;
 				}
 			}
 			// Add(a, Number(neg))  →  a - |neg|  (signo ya absorbido en el número)
@@ -53,6 +55,14 @@ export function formatToLatex(expr: Expr): string {
 			// número * (expr con suma)  →  4\left(x - 2\right)  (paréntesis implicitos)
 			if (left.type === 'Number' && needsParens(right)) {
 				return `${formatToLatex(left)}\\left(${formatToLatex(right)}\\right)`;
+			}
+			// número * potencia de variable  →  2x²  (sin operador)
+			if (
+				left.type === 'Number' &&
+				right.type === 'Power' &&
+				right.base.type === 'Variable'
+			) {
+				return `${formatToLatex(left)}${formatToLatex(right)}`;
 			}
 			// General con paréntesis si es necesario
 			const leftStr = needsParens(left) ? `\\left(${formatToLatex(left)}\\right)` : formatToLatex(left);
