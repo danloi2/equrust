@@ -7,6 +7,7 @@ import { CombineLikeTermsRule } from '../rules/combineLikeTerms';
 import { MoveTermsRule } from '../rules/moveTerms';
 import { DivideBothSidesRule } from '../rules/divideBothSides';
 import { QuadraticFormulaRule } from '../rules/quadratic';
+import { NoSolutionRule } from '../rules/noSolution';
 
 import { ClearDenominatorsRule } from '../rules/clearDenominators';
 import { SquareBothSidesRule } from '../rules/squareBothSides';
@@ -29,6 +30,7 @@ export class Solver {
 			new ExpandPowerRule(),          // 4b. Expandir (expr)^n → producto repetido
 			new ReorderTermsRule(),         // 4c. Reordenar términos por grado (x² → x → cte)
 			new CombineLikeTermsRule(),     // 5. Agrupar términos semejantes
+			new NoSolutionRule(),           // 5b. Detectar contradicción: a=b (sin incógnita, a≠b)
 			new SqrtDomainCheckRule(),      // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
 			new SquareBothSidesRule(),      // 6b. Elevar al cuadrado ambos lados para quitar raíces
 			new QuadraticFormulaRule(),     // 7. Fórmula cuadrática (ANTES de mover términos)

@@ -157,5 +157,27 @@ describe('Solver', () => {
 		const lastStep = steps[steps.length - 1];
 		expect(formatToLatex(lastStep.after)).toBe('x = -\\frac{5}{4}');
 	});
+
+	it('detects 2(x-3)=2x+1 has no solution (contradiction)', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('2(x-3) = 2x+1'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Contradicción');
+		expect(last.solutions).toEqual([]);
+		expect(last.terminal).toBe(true);
+	});
+
+	it('detects x+5=x+10 has no solution (contradiction)', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x+5 = x+10'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Contradicción');
+		expect(last.solutions).toEqual([]);
+		expect(last.terminal).toBe(true);
+	});
 });
 

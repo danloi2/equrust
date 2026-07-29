@@ -32,7 +32,8 @@
 		'3x + 2 = 11',
 		'2x + 5 = 9',
 		'x/2 + 3 = 7',
-		'3(x-1) = 2x+4'
+		'3(x-1) = 2x+4',
+		'2(x-3) = 2x+1'
 	];
 
 	function reset() {
@@ -63,17 +64,19 @@
 			let solutions: readonly number[] = [];
 			let solutions_latex: readonly string[] = [];
 			
-			if (steps.length > 0) {
+				if (steps.length > 0) {
 				const lastStep = steps[steps.length - 1];
 				if (lastStep.title.includes('Bhaskara')) {
 					is_quadratic = true;
 					solutions = lastStep.solutions || [];
 					solutions_latex = lastStep.solutionsLatex || [];
 				}
-				if (lastStep.title.includes('Sin solución — dominio')) {
+				// Cualquier paso terminal con solutions vacío → sin solución
+				if (lastStep.terminal && lastStep.solutions !== undefined && lastStep.solutions.length === 0 && !lastStep.title.includes('Bhaskara')) {
 					is_no_solution = true;
 				}
 			}
+
 
 			data = {
 				input_latex,
