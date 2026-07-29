@@ -142,22 +142,42 @@ export function parse(tokens: Token[]): Expr {
 		}
 
 		if (match('Sqrt')) {
+			let rootIndex: Expr | null = null;
+			if (match('LBracket')) {
+				rootIndex = parseEquation();
+				consume('RBracket', 'Se esperaba "]" después del índice de la raíz');
+			}
+
+			let inner: Expr;
 			const hasBrace = match('LBrace');
 			if (!hasBrace) {
 				const hasParen = match('LParen');
 				if (!hasParen) {
-					// asume que es el siguiente primary
-					const expr = parsePrimary();
-					return { type: 'Sqrt', inner: expr };
+					inner = parsePrimary();
+				} else {
+					inner = parseEquation();
+					consume('RParen', 'Se esperaba ")" después de la raíz');
 				}
-				const expr = parseEquation();
-				consume('RParen', 'Se esperaba ")" después de la raíz');
-				return { type: 'Sqrt', inner: expr };
+			} else {
+				inner = parseEquation();
+				consume('RBrace', 'Se esperaba "}" después de la raíz');
 			}
-			const expr = parseEquation();
-			consume('RBrace', 'Se esperaba "}" después de la raíz');
-			return { type: 'Sqrt', inner: expr };
+
+			if (rootIndex !== null) {
+				return {
+					type: 'Power',
+					base: inner,
+					exponent: {
+						type: 'Divide',
+						left: { type: 'Number', value: 1 },
+						right: rootIndex
+					}
+				};
+			}
+
+			return { type: 'Sqrt', inner };
 		}
+
 
 		if (match('Frac')) {
 			consume('LBrace', 'Se esperaba "{" para el numerador de la fracción');

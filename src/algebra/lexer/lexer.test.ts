@@ -48,7 +48,27 @@ describe('Lexer', () => {
 		]);
 	});
 
+	it('tokenizes Unicode superscripts x²..x⁹ to ^n', () => {
+		const tokens = tokenize('x² + x³ + x⁴ + x⁵ + x⁶ + x⁷ + x⁸ + x⁹');
+		expect(tokens).toContainEqual({ type: 'Operator', value: '^' });
+		expect(tokens).toContainEqual({ type: 'Number', value: '2' });
+		expect(tokens).toContainEqual({ type: 'Number', value: '3' });
+		expect(tokens).toContainEqual({ type: 'Number', value: '9' });
+	});
+
+	it('tokenizes \\cdot, \\times, · and × as multiplication operator', () => {
+		const tokens1 = tokenize('2 \\cdot x');
+		const tokens2 = tokenize('2 \\times x');
+		const tokens3 = tokenize('2 · x');
+		const tokens4 = tokenize('2 × x');
+		expect(tokens1).toEqual(tokens2);
+		expect(tokens2).toEqual(tokens3);
+		expect(tokens3).toEqual(tokens4);
+		expect(tokens1[1]).toEqual({ type: 'Operator', value: '*' });
+	});
+
 	it('throws on unexpected characters', () => {
 		expect(() => tokenize('2x & 3')).toThrow('Caracter inesperado en la posición 3: &');
 	});
 });
+

@@ -7,12 +7,12 @@
 	import StepViewer from '../components/StepViewer.svelte';
 	import MathExpression from '../components/MathExpression.svelte';
 
-	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, ChevronRight, ArrowDown } from '@lucide/svelte';
+	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, FlaskConical } from '@lucide/svelte';
 	import pkg from '../../package.json';
 
 	let expression = $state('');
-	let solver = new Solver();
-	
+	const solver = new Solver();
+
 	let data = $state<{
 		input_latex: string;
 		steps: RuleResult[];
@@ -28,12 +28,13 @@
 
 	const EXAMPLES = [
 		'2(x+3)=10',
-		'x^2 - 4 = 0',
 		'3x + 2 = 11',
-		'2x + 5 = 9',
+		'x^2 - 4 = 0',
+		'x^2+4x+5=0',
 		'x/2 + 3 = 7',
 		'3(x-1) = 2x+4',
-		'2(x-3) = 2x+1'
+		'2(x-3) = 2x+1',
+		'x^2+5x+6=0'
 	];
 
 	function reset() {
@@ -46,37 +47,39 @@
 		e?.preventDefault();
 		const trimmed = expression.trim();
 		if (!trimmed) return;
-		
+
 		try {
 			isError = false;
 			const tokens = tokenize(trimmed);
 			const ast = parse(tokens);
-			
+
 			const input_latex = formatToLatex(ast);
 			const steps = solver.solve(ast);
-			
+
 			const finalExpr = steps.length > 0 ? steps[steps.length - 1].after : ast;
 			const result_latex = formatToLatex(finalExpr);
-			
-			// Si la última regla aplicada fue quadratic, extraer la información
+
 			let is_quadratic = false;
 			let is_no_solution = false;
 			let solutions: readonly number[] = [];
 			let solutions_latex: readonly string[] = [];
-			
-				if (steps.length > 0) {
+
+			if (steps.length > 0) {
 				const lastStep = steps[steps.length - 1];
 				if (lastStep.title.includes('Bhaskara')) {
 					is_quadratic = true;
 					solutions = lastStep.solutions || [];
 					solutions_latex = lastStep.solutionsLatex || [];
 				}
-				// Cualquier paso terminal con solutions vacío → sin solución
-				if (lastStep.terminal && lastStep.solutions !== undefined && lastStep.solutions.length === 0 && !lastStep.title.includes('Bhaskara')) {
+				if (
+					lastStep.terminal &&
+					lastStep.solutions !== undefined &&
+					lastStep.solutions.length === 0 &&
+					!lastStep.title.includes('Bhaskara')
+				) {
 					is_no_solution = true;
 				}
 			}
-
 
 			data = {
 				input_latex,
@@ -87,9 +90,10 @@
 				solutions,
 				solutions_latex
 			};
-		} catch (err: any) {
+		} catch (err: unknown) {
 			isError = true;
-			errorMsg = err.message || 'Error al analizar la expresión.';
+			errorMsg =
+				err instanceof Error ? err.message : 'Error al analizar la expresión.';
 			data = null;
 		}
 	}
@@ -104,179 +108,313 @@
 		setTimeout(() => handleSubmit(), 50);
 	}
 
+	function getLivePreviewLatex(raw: string): string {
+		let str = raw.trim();
+		if (!str) return '';
+
+		// 1. Intentar parsear directamente la expresión tal como está
+		try {
+			const tokens = tokenize(str);
+			const ast = parse(tokens);
+			return formatToLatex(ast);
+		} catch {
+			// Asistencia reactiva de vista previa
+		}
+
+		// Función auxiliar para probar parsear una cadena candidata
+		function tryParse(s: string): string | null {
+			try {
+				const tokens = tokenize(s);
+				const ast = parse(tokens);
+				return formatToLatex(ast);
+			} catch {
+				return null;
+			}
+		}
+
+		// 2. Limpiar secuencias de barras invertidas incompletas al final (ej: "\", "\f", "\fr", "\fra")
+		let cleanStr = str.replace(/\\+[a-zA-Z]*$/g, '').trim();
+
+		// Probar con cleanStr
+		if (cleanStr) {
+			const res = tryParse(cleanStr);
+			if (res) return res;
+		}
+
+		// 3. Completar estructuras de \frac y \sqrt incompletas (en la cadena original o limpia)
+		const targetStr = str;
+		let fixedStr = targetStr;
+		fixedStr = fixedStr.replace(/\\frac\{([^{}]*)\}\{?$/g, '\\frac{$1}{\\text{...}}');
+		fixedStr = fixedStr.replace(/\\frac\{([^{}]*)\}$/g, '\\frac{$1}{\\text{...}}');
+		fixedStr = fixedStr.replace(/\\frac\{?$/g, '\\frac{\\text{...}}{\\text{...}}');
+		fixedStr = fixedStr.replace(/(^|[^\w\\])frac$/g, '$1\\frac{\\text{...}}{\\text{...}}');
+		fixedStr = fixedStr.replace(/\\sqrt\{?$/g, '\\sqrt{\\text{...}}');
+		fixedStr = fixedStr.replace(/(^|[^\w\\])sqrt$/g, '$1\\sqrt{\\text{...}}');
+
+		if (fixedStr !== targetStr) {
+			const res = tryParse(fixedStr);
+			if (res) return res;
+		}
+
+		// 4. Si la cadena (o su versión sin la barra al final) termina en operador (+, -, *, /, ^, =)
+		const candidateOps = [str, cleanStr, fixedStr];
+		for (const candidate of candidateOps) {
+			if (!candidate) continue;
+			const trailingOpMatch = candidate.match(/^(.*?)\s*([\+\-\*\/\^=])\s*$/);
+			if (trailingOpMatch) {
+				const prefix = trailingOpMatch[1].trim();
+				const op = trailingOpMatch[2];
+				if (prefix) {
+					const resPrefix = tryParse(prefix);
+					if (resPrefix) {
+						const opLatex = op === '*' ? '\\cdot ' : op;
+						return `${resPrefix} ${opLatex} \\text{...}`;
+					}
+				}
+			}
+		}
+
+		// 5. Autocompletar paréntesis/llaves no cerradas
+		for (const candidate of [str, cleanStr, fixedStr]) {
+			if (!candidate) continue;
+			let balanced = candidate;
+			const openParens = (candidate.match(/\(/g) || []).length;
+			const closeParens = (candidate.match(/\)/g) || []).length;
+			if (openParens > closeParens) balanced += ')'.repeat(openParens - closeParens);
+
+			const openBraces = (candidate.match(/\{/g) || []).length;
+			const closeBraces = (candidate.match(/\}/g) || []).length;
+			if (openBraces > closeBraces) balanced += '}'.repeat(openBraces - closeBraces);
+
+			if (balanced !== candidate) {
+				const res = tryParse(balanced);
+				if (res) return res;
+			}
+		}
+
+		return '';
+	}
+
+	let livePreviewLatex = $derived(getLivePreviewLatex(expression));
+
+
 	let hasSteps = $derived(data && data.steps.length > 0);
 	let isAlreadySimplified = $derived(data && data.steps.length === 0);
 </script>
 
-<div style="min-height: 100vh; position: relative; overflow: hidden;">
-	<!-- Background orbs -->
-	<div class="bg-orb" style="width: 600px; height: 600px; top: -200px; left: -200px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%);"></div>
-	<div class="bg-orb" style="width: 500px; height: 500px; bottom: -150px; right: -150px; background: radial-gradient(circle, rgba(96,165,250,0.1) 0%, transparent 70%);"></div>
-
-	<div style="position: relative; z-index: 1; max-width: 820px; margin: 0 auto; padding: 80px 24px 120px;">
-		<!-- Header -->
-		<div class="animate-fade-in-up" style="text-align: center; margin-bottom: 56px;">
-			<div style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 24px;">
-				<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 14px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(139,92,246,0.4);">
-					<Sigma size={24} color="white" />
-				</div>
-				<span style="font-size: 1rem; font-weight: 600; color: var(--accent-light); letter-spacing: 2px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px;">
-					Algebra Tutor <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 9999px; background: rgba(139,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.4); text-transform: none; font-weight: 500; font-family: monospace;">v{pkg.version}</span>
-				</span>
+<div class="app-layout">
+	<!-- ─── SIDEBAR ─────────────────────────────────── -->
+	<aside class="sidebar">
+		<!-- Logo + title -->
+		<div style="display:flex;align-items:center;gap:12px;">
+			<div class="logo-mark">
+				<Sigma size={22} color="white" />
 			</div>
-			<h1 style="font-size: clamp(2.4rem, 6vw, 3.5rem); font-weight: 700; line-height: 1.1; margin-bottom: 16px;">
-				Aprende matemáticas{' '}
-				<span class="gradient-text">paso a paso</span>
-			</h1>
-			<p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 500px; margin: 0 auto; line-height: 1.6;">
-				Motor algebraico propio. No calculadora — tutor. Cada transformación explicada con su razón matemática.
-			</p>
+			<div>
+				<div style="font-size:1rem;font-weight:800;color:#f0f0ff;line-height:1.1;">
+					Algebra Tutor
+				</div>
+				<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+					<span class="ver-badge">v{pkg.version}</span>
+				</div>
+			</div>
 		</div>
 
+		<p style="font-size:0.82rem;color:var(--text2);line-height:1.6;">
+			Motor algebraico propio — no calculadora. Cada transformación explicada con su razón matemática.
+		</p>
+
 		<!-- Input -->
-		<div class="glass-card animate-fade-in-up-delay-1" style="padding: 28px 32px; margin-bottom: 16px;">
-			<form onsubmit={handleSubmit}>
-				<div style="display: flex; align-items: center; gap: 16px;">
-					<div style="flex: 1; display: flex; align-items: center; gap: 12px;">
-						<ChevronRight size={20} color="var(--accent)" style="flex-shrink: 0;" />
-						<input
-							id="expression-input"
-							class="math-input"
-							type="text"
-							bind:value={expression}
-							oninput={reset}
-							onkeydown={handleKeyDown}
-							placeholder="Escribe una expresión… p.ej. 2(x+3)=10"
-							autocomplete="off"
-							spellcheck="false"
-						/>
-					</div>
-					<button
-						id="solve-button"
-						type="submit"
-						class="solve-button"
-						disabled={!expression.trim()}
-					>
-						<Sparkles size={16} />
-						Resolver
-					</button>
+		<div>
+			<div class="section-label">Ecuación</div>
+			<form onsubmit={handleSubmit} style="display:flex;flex-direction:column;gap:12px;">
+				<div class="input-card">
+					<input
+						id="expression-input"
+						class="math-input"
+						type="text"
+						bind:value={expression}
+						oninput={reset}
+						onkeydown={handleKeyDown}
+						placeholder="ej. 2(x+3)=10"
+						autocomplete="off"
+						spellcheck="false"
+					/>
 				</div>
+				{#if livePreviewLatex}
+					<div class="anim-fade-up" style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:var(--radius-sm);padding:8px 12px;display:flex;flex-direction:column;gap:4px;">
+						<span style="font-size:0.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-light);">Vista previa</span>
+						<div class="notranslate" translate="no" style="overflow-x:auto;">
+							<MathExpression latex={livePreviewLatex} displayMode={false} />
+						</div>
+					</div>
+				{/if}
+				<button
+					id="solve-button"
+					type="submit"
+					class="solve-btn"
+					disabled={!expression.trim()}
+				>
+					<Sparkles size={15} />
+					Resolver paso a paso
+				</button>
 			</form>
 		</div>
 
 		<!-- Examples -->
-		<div class="animate-fade-in-up-delay-2" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; padding-left: 4px;">
-			<span style="color: var(--text-muted); font-size: 0.8rem; display: flex; align-items: center; gap: 4px; margin-right: 4px;">
-				<BookOpen size={13} /> Ejemplos:
-			</span>
-			{#each EXAMPLES as ex}
-				<button
-					id={`example-${ex.replace(/[\s=^*/()+]/g, '-')}`}
-					class="example-chip"
-					onclick={() => handleExample(ex)}
-				>
-					{ex} <ArrowRight size={11} />
-				</button>
-			{/each}
+		<div>
+			<div class="section-label" style="display:flex;align-items:center;gap:5px;">
+				<BookOpen size={11} /> Ejemplos
+			</div>
+			<div class="chips-wrap">
+				{#each EXAMPLES as ex}
+					<button
+						id={`example-${ex.replace(/[\s=^*/()+]/g, '-')}`}
+						class="chip"
+						onclick={() => handleExample(ex)}
+					>
+						{ex}
+					</button>
+				{/each}
+			</div>
 		</div>
 
+		<!-- Footer -->
+		<div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border);">
+			<div style="display:flex;align-items:center;gap:6px;color:var(--text3);font-size:0.75rem;">
+				<FlaskConical size={13} />
+				Motor algebraico con {EXAMPLES.length} tipos de ecuaciones
+			</div>
+		</div>
+	</aside>
+
+	<!-- ─── MAIN CONTENT ───────────────────────────── -->
+	<main class="main-content">
 		<!-- Error -->
 		{#if isError}
-			<div class="error-badge result-container" style="margin-bottom: 24px;">
-				<AlertCircle size={16} />
-				<span>{errorMsg}</span>
+			<div class="error-card anim-fade-up">
+				<AlertCircle size={18} style="flex-shrink:0;margin-top:1px;" />
+				<div>
+					<div style="font-weight:600;margin-bottom:2px;">Error de sintaxis</div>
+					<div style="font-size:0.82rem;opacity:.8;">{errorMsg}</div>
+				</div>
 			</div>
 		{/if}
 
-		<!-- Result -->
 		{#if data}
-			<div class="result-container">
-				<!-- Input expression -->
-				<div class="glass-card" style="padding: 28px 32px; margin-bottom: 16px;">
-					<p style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
-						Expresión de entrada
-					</p>
-					<div class="notranslate" translate="no" style="text-align: center;">
-						<MathExpression latex={data.input_latex} displayMode={true} />
-					</div>
+			<!-- Expression input display -->
+			<div class="expr-panel anim-fade-up" style="position:relative;">
+				<div class="section-label" style="position:absolute;top:14px;left:20px;">
+					Expresión de entrada
 				</div>
+				<div class="notranslate" translate="no" style="padding-top:12px;">
+					<MathExpression latex={data.input_latex} displayMode={true} />
+				</div>
+			</div>
 
-				<!-- Steps -->
-				{#if hasSteps}
-					<div style="margin-bottom: 16px;">
-						<div style="display: flex; align-items: center; gap: 8px; padding: 0 4px; margin-bottom: 12px;">
-							<div style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent);"></div>
-							<span style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-								{data.steps.length} paso{data.steps.length !== 1 ? 's' : ''} de simplificación
-							</span>
-						</div>
-						<div style="display: flex; flex-direction: column; gap: 10px;">
-							<StepViewer steps={data.steps} />
-						</div>
-						<div style="display: flex; justify-content: center; padding: 12px 0;">
-							<ArrowDown size={18} color="var(--accent)" style="opacity: 0.5;" />
-						</div>
+			<!-- Steps -->
+			{#if hasSteps}
+				<div class="steps-section">
+					<div class="steps-header">
+						<div class="steps-dot"></div>
+						<span style="font-size:0.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);">
+							{data.steps.length} paso{data.steps.length !== 1 ? 's' : ''} de resolución
+						</span>
 					</div>
-				{/if}
+					<StepViewer steps={data.steps} />
+				</div>
+			{/if}
 
-				<!-- Result -->
-				<div class="glass-card" style="padding: 32px 40px; text-align: center;">
-					<p style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
-						{isAlreadySimplified ? 'Expresión (ya simplificada)' : 'Resultado final'}
-					</p>
-					<div class="notranslate" translate="no" style="
-						padding: 28px 20px;
-						background: rgba(139,92,246,0.06);
-						border-radius: 16px;
-						border: 1px solid rgba(139,92,246,0.2);
-						overflow-x: auto;
-						display: flex;
-						flex-direction: column;
-						gap: 12px;
-					">
-						{#if data.is_no_solution}
-							<div style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 8px;">
-								<span>La ecuación no tiene solución en</span>
-								<MathExpression latex={"S = \\emptyset"} displayMode={true} />
+			<!-- Result panel -->
+			<div class="result-panel anim-fade-up anim-d2">
+				<div class="result-panel-header">
+					<div class="dot"></div>
+					<span class="title">
+						{isAlreadySimplified ? 'Expresión simplificada' : 'Resultado final'}
+					</span>
+				</div>
+				<div class="result-panel-body notranslate" translate="no">
+					{#if data.is_no_solution}
+						<div class="no-real-sol">
+							<div class="badge">
+								∅ &nbsp; Sin solución
 							</div>
-						{:else if data.is_quadratic}
-							{#if data.solutions.length === 0}
-								<div style="color: var(--text-secondary); font-size: 1.1rem; font-weight: 500;">
-									La ecuación no tiene soluciones reales en <MathExpression latex={"\\mathbb{R}"} displayMode={false} />
+							<MathExpression latex={"S = \\emptyset"} displayMode={true} />
+							<p style="font-size:0.8rem;color:var(--text2);max-width:340px;">
+								No existe ningún valor real que satisfaga esta ecuación.
+							</p>
+						</div>
+
+					{:else if data.is_quadratic}
+						{#if data.solutions.length === 0}
+							<div class="no-real-sol">
+								<div class="badge">
+									∅ &nbsp; Sin raíces reales
 								</div>
-							{:else}
-								{#each data.solutions as sol, i}
+								<p style="font-size:0.8rem;color:var(--text2);">
+									El discriminante es negativo. La ecuación no tiene soluciones en ℝ.
+								</p>
+							</div>
+
+						{:else if data.solutions.length === 1}
+							<div class="solutions-grid" style="max-width:280px;margin:0 auto;">
+								<div class="solution-box double-root">
+									<span class="sol-label">Raíz doble</span>
 									<MathExpression
-										latex={`x_${i + 1} = ${data.solutions_latex?.[i] ?? (Number.isInteger(sol) ? sol : parseFloat(sol.toFixed(4)))}`}
-										displayMode={true}
+										latex={`x = ${data.solutions_latex?.[0] ?? (Number.isInteger(data.solutions[0]) ? data.solutions[0] : parseFloat(data.solutions[0].toFixed(4)))}`}
+										displayMode={false}
 									/>
-								{/each}
-							{/if}
+								</div>
+							</div>
+
 						{:else}
-							<MathExpression latex={data.result_latex} displayMode={true} />
+							<div class="solutions-grid">
+								{#each data.solutions as sol, i}
+									<div class="solution-box">
+										<span class="sol-label">Solución {i + 1}</span>
+										<MathExpression
+											latex={`x_{${i + 1}} = ${data.solutions_latex?.[i] ?? (Number.isInteger(sol) ? sol : parseFloat(sol.toFixed(4)))}`}
+											displayMode={false}
+										/>
+									</div>
+								{/each}
+							</div>
 						{/if}
-					</div>
-					{#if isAlreadySimplified}
-						<p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 14px;">
-							Esta expresión ya está en su forma más simple.
-							<br />
-							Prueba ecuaciones como <code>2(x+3)=10</code>, <code>3x+2x=10</code> o <code>x/2+3=7</code>.
-						</p>
+
+					{:else}
+						<MathExpression latex={data.result_latex} displayMode={true} />
+						{#if isAlreadySimplified}
+							<p style="font-size:0.8rem;color:var(--text3);margin-top:14px;">
+								Esta expresión ya está en su forma más simple.
+							</p>
+						{/if}
 					{/if}
 				</div>
 			</div>
-		{/if}
 
-		<!-- Empty state -->
-		{#if !data && !isError}
-			<div class="animate-fade-in-up-delay-3" style="text-align: center; padding: 40px 20px;">
-				<div style="margin-bottom: 20px; opacity: 0.4; display: flex; justify-content: center;">
-					<MathExpression latex="\int_a^b f(x)\,dx = F(b) - F(a)" displayMode={false} />
+		{:else if livePreviewLatex}
+			<!-- Real-time Live Preview Panel in main workspace -->
+			<div class="expr-panel anim-fade-up" style="position:relative;margin-top:20px;">
+				<div class="section-label" style="position:absolute;top:14px;left:20px;display:flex;align-items:center;gap:6px;">
+					<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);"></span>
+					Vista previa en tiempo real
 				</div>
-				<p style="color: var(--text-muted); font-size: 0.9rem;">
-					Introduce cualquier expresión o ecuación algebraica para comenzar
+				<div class="notranslate" translate="no" style="padding-top:16px;">
+					<MathExpression latex={livePreviewLatex} displayMode={true} />
+				</div>
+				<div style="font-size:0.78rem;color:var(--text3);margin-top:16px;">
+					Presiona <kbd style="background:var(--surface2);padding:2px 6px;border-radius:4px;border:1px solid var(--border);">Enter</kbd> o haz clic en <strong>Resolver</strong> para ver los pasos completos
+				</div>
+			</div>
+		{:else if !isError}
+			<!-- Empty state -->
+			<div class="empty-state">
+				<div style="opacity:.25;font-size:3.5rem;line-height:1;">∑</div>
+				<MathExpression latex={"ax^2 + bx + c = 0"} displayMode={true} />
+				<p style="font-size:0.88rem;color:var(--text3);text-align:center;max-width:300px;">
+					Escribe una ecuación en la barra lateral para empezar a resolverla paso a paso
 				</p>
 			</div>
 		{/if}
-	</div>
+	</main>
 </div>

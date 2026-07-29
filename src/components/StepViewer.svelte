@@ -2,6 +2,7 @@
 	import type { RuleResult } from '../algebra/types';
 	import MathExpression from './MathExpression.svelte';
 	import { formatToLatex } from '../algebra/formatter';
+	import { ArrowRight } from '@lucide/svelte';
 
 	let { steps = [] } = $props<{ steps?: RuleResult[] }>();
 
@@ -10,84 +11,89 @@
 	}
 </script>
 
-{#if steps.length > 0}
-	<div class="mt-8 space-y-6">
-		<h2 class="text-2xl font-bold text-gray-200 border-b border-gray-700 pb-2">Resolución Paso a Paso</h2>
+{#each steps as step, i}
+	<div class="step-card anim-fade-up" style="animation-delay: {i * 0.06}s">
+		<!-- Number column -->
+		<div class="step-number-col">{i + 1}</div>
 
-		<div class="space-y-4">
-			{#each steps as step, index}
-				<div class="bg-gray-800/80 border border-gray-700 rounded-xl p-6 shadow-md hover:border-blue-500/50 transition-colors">
-					<!-- Cabecera del paso -->
-					<div class="flex items-center justify-between mb-4">
-						<div class="flex items-center gap-3">
-							<span class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm shadow-sm">
-								{index + 1}
-							</span>
-							<h3 class="text-lg font-semibold text-blue-400">{step.title}</h3>
-						</div>
-						<span class="text-xs font-medium px-2.5 py-1 bg-gray-700 text-gray-300 rounded-full tracking-wide">
-							{step.concept}
-						</span>
+		<!-- Body -->
+		<div class="step-body">
+			<!-- Rule name + concept -->
+			<div class="step-rule-name">{step.title}</div>
+			{#if step.concept}
+				<div class="step-concept">💡 {step.concept}</div>
+			{/if}
+
+			<!-- Transformation: before → after (only for non-terminal or normal steps) -->
+			{#if step.solutions === undefined}
+				<div class="step-transform notranslate" translate="no">
+					<div class="before">
+						<MathExpression latex={formatToLatex(step.before)} displayMode={false} />
 					</div>
-
-					<!-- Explicación -->
-					{#if step.explanationBlocks && step.explanationBlocks.length > 0}
-						<div class="space-y-3 mb-6">
-							{#each step.explanationBlocks as block}
-								{#if block.type === 'text'}
-									<p class="text-gray-300 text-sm leading-relaxed">{block.content}</p>
-								{:else if block.type === 'math'}
-									<div class="bg-gray-900/60 rounded-lg py-2 border border-gray-700/40 flex justify-center">
-										<MathExpression latex={block.content} displayMode={true} />
-									</div>
-								{/if}
-							{/each}
-						</div>
-					{:else}
-						<p class="text-gray-300 mb-6 text-sm leading-relaxed whitespace-pre-line">
-							{step.explanation}
-						</p>
-					{/if}
-
-					<!-- Resultado principal: expresión transformada -->
-					{#if step.solutions === undefined}
-						<!-- Paso normal: mostrar el after -->
-						<div class="bg-gray-900 rounded-lg py-4 border border-gray-800 flex justify-center">
-							<div class="text-xl">
-								<MathExpression latex={formatToLatex(step.after)} />
-							</div>
-						</div>
-
-					{:else if step.solutions.length === 0}
-						<!-- Sin solución real -->
-						<div class="bg-red-950/40 border border-red-700/50 rounded-lg py-5 flex flex-col items-center gap-2">
-							<span class="text-4xl">∅</span>
-							<span class="text-red-300 font-semibold text-lg">Sin solución real</span>
-							<span class="text-red-400 text-sm">La ecuación no tiene raíces en ℝ</span>
-						</div>
-
-					{:else if step.solutions.length === 1}
-						<!-- Una solución doble -->
-						<div class="bg-gray-900 rounded-lg py-4 border border-amber-600/40 flex flex-col items-center gap-1">
-							<span class="text-xs text-amber-400 font-semibold tracking-widest uppercase mb-1">Raíz doble</span>
-							<MathExpression latex={`x = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`} />
-						</div>
-
-					{:else}
-						<!-- Dos soluciones -->
-						<div class="grid grid-cols-2 gap-3">
-							<div class="bg-gray-900 rounded-lg py-4 border border-green-600/40 flex flex-col items-center gap-1">
-								<span class="text-xs text-green-400 font-semibold tracking-widest uppercase mb-1">Solución 1</span>
-								<MathExpression latex={`x_1 = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`} />
-							</div>
-							<div class="bg-gray-900 rounded-lg py-4 border border-green-600/40 flex flex-col items-center gap-1">
-								<span class="text-xs text-green-400 font-semibold tracking-widest uppercase mb-1">Solución 2</span>
-								<MathExpression latex={`x_2 = ${step.solutionsLatex?.[1] ?? fmt(step.solutions[1])}`} />
-							</div>
-						</div>
-					{/if}
+					<div class="arrow">⟶</div>
+					<div class="after">
+						<MathExpression latex={formatToLatex(step.after)} displayMode={false} />
+					</div>
 				</div>
-			{/each}
+			{:else if step.solutions.length === 0}
+				<!-- No solution -->
+				<div class="step-no-solution">
+					<span class="icon">∅</span>
+					<span class="label">Sin solución en ℝ</span>
+					<div class="notranslate" translate="no">
+						<MathExpression latex={"S = \\emptyset"} displayMode={false} />
+					</div>
+				</div>
+			{:else if step.solutions.length === 1}
+				<!-- One double root -->
+				<div class="step-transform notranslate" translate="no">
+					<div class="before">
+						<MathExpression latex={formatToLatex(step.before)} displayMode={false} />
+					</div>
+					<div class="arrow">⟶</div>
+					<div class="after">
+						<MathExpression
+							latex={`x = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`}
+							displayMode={false}
+						/>
+					</div>
+				</div>
+			{:else}
+				<!-- Two solutions -->
+				<div class="step-transform notranslate" translate="no">
+					<div class="before">
+						<MathExpression latex={formatToLatex(step.before)} displayMode={false} />
+					</div>
+					<div class="arrow">⟶</div>
+					<div class="after" style="display:flex;flex-direction:column;gap:4px;">
+						<MathExpression
+							latex={`x_1 = ${step.solutionsLatex?.[0] ?? fmt(step.solutions[0])}`}
+							displayMode={false}
+						/>
+						<MathExpression
+							latex={`x_2 = ${step.solutionsLatex?.[1] ?? fmt(step.solutions[1])}`}
+							displayMode={false}
+						/>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Explanation blocks -->
+			{#if step.explanationBlocks && step.explanationBlocks.length > 0}
+				<div class="step-explanation-blocks">
+					{#each step.explanationBlocks as block}
+						{#if block.type === 'text'}
+							<p class="block-text">{block.content}</p>
+						{:else if block.type === 'math'}
+							<div class="block-math notranslate" translate="no">
+								<MathExpression latex={block.content} displayMode={false} />
+							</div>
+						{/if}
+					{/each}
+				</div>
+			{:else if step.explanation}
+				<p class="block-text" style="margin-top:8px;">{step.explanation}</p>
+			{/if}
 		</div>
 	</div>
-{/if}
+{/each}

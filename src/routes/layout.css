@@ -1,233 +1,456 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ─── Tokens ─────────────────────────────────────────────── */
 :root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #13131a;
-  --bg-card: rgba(255, 255, 255, 0.02);
-  --accent: #8b5cf6;
-  --accent-light: #a78bfa;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(139, 92, 246, 0.4);
-  --accent-glow: rgba(139, 92, 246, 0.2);
-  --success: #10b981;
-  --error: #f43f5e;
+  --bg:         #06060e;
+  --bg2:        #0d0d1a;
+  --bg3:        #13131f;
+  --surface:    rgba(255,255,255,0.03);
+  --surface2:   rgba(255,255,255,0.055);
+  --accent:     #8b5cf6;
+  --accent2:    #7c3aed;
+  --accent-dim: rgba(139,92,246,0.18);
+  --accent-glow:rgba(139,92,246,0.35);
+  --cyan:       #22d3ee;
+  --green:      #10b981;
+  --red:        #f43f5e;
+  --amber:      #f59e0b;
+  --text:       #f0f0ff;
+  --text2:      #a0a0c0;
+  --text3:      #50507a;
+  --border:     rgba(255,255,255,0.07);
+  --border2:    rgba(139,92,246,0.3);
+  --radius:     18px;
+  --radius-sm:  10px;
+  --radius-xs:  6px;
 }
 
-/* Fix Tailwind CSS v4 resetting borders which breaks KaTeX fraction lines */
-.katex * {
-  border-color: currentColor;
-}
-
-/* Fallback: ensure MathML is always hidden visually even if KaTeX CSS fails to load */
-.katex-mathml {
-  position: absolute !important;
-  clip: rect(1px, 1px, 1px, 1px) !important;
-  padding: 0 !important;
-  border: 0 !important;
-  height: 1px !important;
-  width: 1px !important;
-  overflow: hidden !important;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ─── Reset & Base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   min-height: 100vh;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
+  background: var(--bg);
+  color: var(--text);
   font-family: 'Inter', -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
 }
 
-/* Animations */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ─── KaTeX fixes ────────────────────────────────────────── */
+.katex * { border-color: currentColor; }
+.katex-mathml {
+  position: absolute !important; clip: rect(1px,1px,1px,1px) !important;
+  padding: 0 !important; border: 0 !important;
+  height: 1px !important; width: 1px !important; overflow: hidden !important;
+}
+.katex-display { margin: 0 !important; }
+.katex { font-size: 1.5rem !important; color: var(--text) !important; }
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.app-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@media (max-width: 860px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+/* ─── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+  grid-row: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--bg2);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
-.animate-fade-in-up-delay-1 { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both; }
-.animate-fade-in-up-delay-2 { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both; }
-.animate-fade-in-up-delay-3 { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+@media (max-width: 860px) {
+  .sidebar {
+    grid-row: auto;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 24px 20px;
+  }
+}
 
-/* Glassmorphism card */
-.glass-card {
-  background: var(--bg-card);
+/* ─── Logo ───────────────────────────────────────────────── */
+.logo-mark {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 24px var(--accent-glow);
+  flex-shrink: 0;
+}
+
+/* ─── Input card ─────────────────────────────────────────── */
+.input-card {
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  backdrop-filter: blur(20px);
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  transition: border-color .25s, box-shadow .25s;
+}
+.input-card:focus-within {
+  border-color: var(--border2);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
-.glass-card:hover {
-  border-color: var(--border-hover);
-  box-shadow: 0 0 30px var(--accent-glow);
-}
-
-/* Input */
 .math-input {
   width: 100%;
   background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
+  border: none; outline: none;
+  color: var(--text);
   font-family: 'JetBrains Mono', monospace;
-  font-size: 1.1rem;
+  font-size: 1rem;
   caret-color: var(--accent);
 }
+.math-input::placeholder { color: var(--text3); }
 
-.math-input::placeholder {
-  color: var(--text-muted);
-}
-
-/* Solve button */
-.solve-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  background: linear-gradient(135deg, var(--accent), #7c3aed);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 600;
+/* ─── Solve button ───────────────────────────────────────── */
+.solve-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: var(--radius-sm);
+  color: #fff;
   font-family: 'Inter', sans-serif;
+  font-size: 0.92rem; font-weight: 700;
+  letter-spacing: .02em;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-  white-space: nowrap;
+  transition: transform .18s, box-shadow .18s, opacity .18s;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.4);
 }
-
-.solve-button:hover:not(:disabled) {
+.solve-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.5);
+  box-shadow: 0 8px 32px rgba(139,92,246,0.55);
+}
+.solve-btn:active:not(:disabled) { transform: translateY(0); }
+.solve-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ─── Example chips ──────────────────────────────────────── */
+.chips-wrap {
+  display: flex; flex-wrap: wrap; gap: 7px;
 }
 
-.solve-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.solve-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Spinner */
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-/* Result container */
-.result-container {
-  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Katex rendering */
-.katex-display {
-  margin: 0 !important;
-}
-
-.katex {
-  font-size: 1.8rem !important;
-  color: var(--text-primary) !important;
-}
-
-/* Example chips */
-.example-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.25);
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 13px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(139,92,246,.25);
   border-radius: 100px;
-  color: var(--accent-light);
+  color: #c4b5fd;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  transition: background .18s, border-color .18s, transform .15s;
 }
-
-.example-chip:hover {
-  background: rgba(139, 92, 246, 0.2);
-  border-color: rgba(139, 92, 246, 0.5);
+.chip:hover {
+  background: rgba(139,92,246,.3);
+  border-color: var(--border2);
   transform: translateY(-1px);
 }
 
-/* Gradient text */
-.gradient-text {
+/* ─── Main content ───────────────────────────────────────── */
+.main-content {
+  padding: 36px 40px 80px;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .main-content { padding: 24px 16px 60px; }
+}
+
+/* ─── Empty state ────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+  opacity: .35;
+  padding: 60px 0;
+}
+
+/* ─── Section label ──────────────────────────────────────── */
+.section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+}
+
+/* ─── Expression display panel ───────────────────────────── */
+.expr-panel {
+  background: linear-gradient(135deg, rgba(139,92,246,.08) 0%, rgba(34,211,238,.04) 100%);
+  border: 1px solid rgba(139,92,246,.2);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  text-align: center;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.expr-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(139,92,246,.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* ─── Steps list ─────────────────────────────────────────── */
+.steps-section { margin-bottom: 28px; }
+
+.steps-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 16px;
+}
+.steps-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  flex-shrink: 0;
+}
+
+/* ─── Step card ──────────────────────────────────────────── */
+.step-card {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 0 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color .25s, box-shadow .25s;
+  margin-bottom: 10px;
+}
+.step-card:hover {
+  border-color: rgba(139,92,246,.25);
+  box-shadow: 0 4px 24px rgba(0,0,0,.3);
+}
+
+.step-number-col {
+  grid-row: 1 / 4;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 20px;
+  font-size: 0.78rem; font-weight: 800;
+  color: #fff;
+  letter-spacing: .02em;
+}
+
+.step-body { padding: 18px 20px 18px 0; }
+
+.step-rule-name {
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.step-concept {
+  font-size: 0.72rem;
+  color: var(--text3);
+  margin-bottom: 12px;
+}
+
+/* ─── Step transformation (before → after) ───────────────── */
+.step-transform {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: rgba(0,0,0,.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+.step-transform .before { flex: 1; min-width: 0; }
+.step-transform .arrow  {
+  color: var(--accent);
+  font-size: 1.6rem;
+  flex-shrink: 0;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+.step-transform .after  { flex: 1; min-width: 0; }
+
+.step-explanation-blocks { margin-top: 12px; }
+
+.block-text {
+  font-size: 0.82rem; color: var(--text2);
+  margin: 6px 0 3px;
+  line-height: 1.55;
+}
+.block-math {
+  background: rgba(0,0,0,.2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  overflow-x: auto;
+  margin: 4px 0;
+  display: flex; justify-content: center;
+}
+.block-math .katex { font-size: 1.15rem !important; }
+
+/* ─── No-solution badge (in step) ────────────────────────── */
+.step-no-solution {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: rgba(244,63,94,.07);
+  border: 1px solid rgba(244,63,94,.25);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.step-no-solution .icon { font-size: 2rem; }
+.step-no-solution .label {
+  font-size: 0.88rem; font-weight: 600;
+  color: #fb7185;
+}
+
+/* ─── Result final panel ─────────────────────────────────── */
+.result-panel {
+  border-radius: var(--radius);
+  border: 1px solid rgba(139,92,246,.3);
+  overflow: hidden;
+}
+
+.result-panel-header {
+  background: linear-gradient(90deg, rgba(139,92,246,.15), rgba(139,92,246,.06));
+  padding: 14px 24px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid rgba(139,92,246,.2);
+}
+.result-panel-header .dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.result-panel-header .title {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--accent);
+}
+
+.result-panel-body {
+  padding: 32px 24px;
+  text-align: center;
+  background: rgba(139,92,246,.04);
+}
+
+/* solutions grid */
+.solutions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.solution-box {
+  background: var(--surface);
+  border: 1px solid rgba(16,185,129,.3);
+  border-radius: var(--radius-sm);
+  padding: 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.solution-box .sol-label {
+  font-size: 0.68rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--green);
+}
+.solution-box.double-root { border-color: rgba(245,158,11,.3); }
+.solution-box.double-root .sol-label { color: var(--amber); }
+
+.no-real-sol {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 12px 0;
+}
+.no-real-sol .badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 18px;
+  background: rgba(244,63,94,.1);
+  border: 1px solid rgba(244,63,94,.3);
+  border-radius: 100px;
+  font-size: 0.78rem; font-weight: 600;
+  color: #fb7185;
+}
+
+/* ─── Error ──────────────────────────────────────────────── */
+.error-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 18px;
+  background: rgba(244,63,94,.07);
+  border: 1px solid rgba(244,63,94,.25);
+  border-radius: var(--radius-sm);
+  color: #fb7185;
+  font-size: 0.875rem;
+  margin-bottom: 24px;
+}
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.anim-fade-up  { animation: fadeUp  .5s cubic-bezier(.16,1,.3,1) both; }
+.anim-slide-in { animation: slideIn .4s cubic-bezier(.16,1,.3,1) both; }
+.anim-d1 { animation-delay: .06s; }
+.anim-d2 { animation-delay: .12s; }
+.anim-d3 { animation-delay: .18s; }
+
+/* ─── Gradient text ──────────────────────────────────────── */
+.grad-text {
   background: linear-gradient(135deg, #a78bfa, #818cf8, #60a5fa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Background decorations */
-.bg-orb {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-  z-index: 0;
+/* ─── Separator arrow ─────────────────────────────────────── */
+.sep-arrow {
+  display: flex; justify-content: center; align-items: center;
+  color: var(--text3); font-size: .85rem;
+  padding: 4px 0;
+  gap: 6px;
+}
+.sep-arrow::before, .sep-arrow::after {
+  content: '';
+  height: 1px; flex: 1; max-width: 60px;
+  background: var(--border);
 }
 
-/* Error badge */
-.error-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(244, 63, 94, 0.1);
-  border: 1px solid rgba(244, 63, 94, 0.25);
-  border-radius: 12px;
-  color: #fb7185;
-  font-size: 0.875rem;
+/* ─── Version badge ───────────────────────────────────────── */
+.ver-badge {
+  font-size: 0.72rem; padding: 2px 9px;
+  border-radius: 9999px;
+  background: rgba(139,92,246,.18);
+  color: #c4b5fd;
+  border: 1px solid rgba(139,92,246,.35);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
 }
 
-/* Step card */
-.step-card {
-  display: flex;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  transition: border-color 0.25s ease;
-}
-
-.step-card:hover {
-  border-color: rgba(139, 92, 246, 0.2);
-}
-
-.step-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  background: linear-gradient(135deg, var(--accent), #7c3aed);
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(139,92,246,.35); border-radius: 3px; }

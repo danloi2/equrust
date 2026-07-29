@@ -77,8 +77,21 @@ export function formatToLatex(expr: Expr): string {
 			return `\\frac{${formatToLatex(expr.left)}}{${formatToLatex(expr.right)}}`;
 		}
 
-		case 'Power':
+		case 'Power': {
+			if (
+				expr.exponent.type === 'Divide' &&
+				expr.exponent.left.type === 'Number' &&
+				expr.exponent.left.value === 1
+			) {
+				const rootDegree = expr.exponent.right;
+				if (rootDegree.type === 'Number' && rootDegree.value === 2) {
+					return `\\sqrt{${formatToLatex(expr.base)}}`;
+				}
+				return `\\sqrt[${formatToLatex(rootDegree)}]{${formatToLatex(expr.base)}}`;
+			}
 			return `${formatToLatex(expr.base)}^{${formatToLatex(expr.exponent)}}`;
+		}
+
 
 		case 'Equation':
 			return `${formatToLatex(expr.left)} = ${formatToLatex(expr.right)}`;

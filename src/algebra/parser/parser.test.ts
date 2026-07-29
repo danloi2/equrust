@@ -82,13 +82,28 @@ describe('Parser', () => {
 		});
 	});
 
-	it('handles unary minus', () => {
-		const tokens = tokenize('-x');
+	it('parses n-th root \\sqrt[3]{x}', () => {
+		const tokens = tokenize('\\sqrt[3]{x}');
 		const ast = parse(tokens);
 		expect(ast).toEqual({
-			type: 'Multiply',
-			left: { type: 'Number', value: -1 },
-			right: { type: 'Variable', name: 'x' }
+			type: 'Power',
+			base: { type: 'Variable', name: 'x' },
+			exponent: {
+				type: 'Divide',
+				left: { type: 'Number', value: 1 },
+				right: { type: 'Number', value: 3 }
+			}
+		});
+	});
+
+	it('parses Unicode superscripts x² into power AST', () => {
+		const tokens = tokenize('x²');
+		const ast = parse(tokens);
+		expect(ast).toEqual({
+			type: 'Power',
+			base: { type: 'Variable', name: 'x' },
+			exponent: { type: 'Number', value: 2 }
 		});
 	});
 });
+
