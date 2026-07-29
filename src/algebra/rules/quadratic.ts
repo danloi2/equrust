@@ -218,7 +218,13 @@ export class QuadraticFormulaRule implements Rule {
 		const coefsStr = `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`;
 		const formulaStr = `${varName} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}`;
 		const subStr = `${varName} = \\frac{-(${b}) \\pm \\sqrt{(${b})^2 - 4 \\cdot (${a}) \\cdot (${c})}}{2 \\cdot (${a})}`;
+		// Versión con valores ya evaluados: muestra -b y 2a calculados, y el discriminante como número
+		const negB = -b;
+		const twoA = 2 * a;
+		const negBStr = negB < 0 ? `(${negB})` : `${negB}`;
+		const computedStr = `${varName} = \\frac{${negBStr} \\pm \\sqrt{${discriminant}}}{${twoA}}`;
 		const discCalcStr = `\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot (${a}) \\cdot (${c}) = ${discriminant}`;
+
 
 		if (discriminant < 0) {
 			return {
@@ -239,7 +245,9 @@ export class QuadraticFormulaRule implements Rule {
 					{ type: 'math', content: subStr },
 					{ type: 'text', content: 'Calculamos el discriminante Δ:' },
 					{ type: 'math', content: discCalcStr },
-					{ type: 'text', content: 'Como Δ < 0, la parábola no corta el eje x. La ecuación no tiene soluciones reales.' }
+					{ type: 'text', content: 'Con los valores evaluados:' },
+					{ type: 'math', content: computedStr },
+					{ type: 'text', content: 'Como Δ < 0, la raíz cuadrada de un número negativo no existe en ℝ. La parábola no corta el eje x. La ecuación no tiene soluciones reales.' }
 				],
 				concept: 'Discriminante negativo → Sin raíces reales',
 				difficulty: 9,
@@ -271,8 +279,10 @@ export class QuadraticFormulaRule implements Rule {
 					{ type: 'math', content: subStr },
 					{ type: 'text', content: 'Calculamos el discriminante Δ:' },
 					{ type: 'math', content: discCalcStr },
-					{ type: 'text', content: 'Como Δ = 0, obtenemos una única raíz doble:' },
-					{ type: 'math', content: `${varName} = \\frac{-(${b})}{2 \\cdot (${a})} = ${xLatex}` }
+					{ type: 'text', content: 'Con los valores evaluados:' },
+					{ type: 'math', content: computedStr },
+					{ type: 'text', content: 'Como Δ = 0, la raíz es exactamente 0. Obtenemos una única raíz doble:' },
+					{ type: 'math', content: `${varName} = \\frac{${negBStr}}{${twoA}} = ${xLatex}` }
 				],
 				concept: 'Discriminante cero → Una raíz doble',
 				difficulty: 9,
@@ -325,6 +335,8 @@ export class QuadraticFormulaRule implements Rule {
 				{ type: 'math', content: subStr },
 				{ type: 'text', content: 'Calculamos el discriminante Δ:' },
 				{ type: 'math', content: discCalcStr },
+				{ type: 'text', content: 'Con los valores evaluados:' },
+				{ type: 'math', content: computedStr },
 				{ type: 'text', content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:' },
 				{ type: 'math', content: `${varName}_1 = ${x1Latex}, \\quad ${varName}_2 = ${x2Latex}` }
 			],
