@@ -67,9 +67,14 @@
 
 			if (steps.length > 0) {
 				const lastStep = steps[steps.length - 1];
-				if (lastStep.title.includes('Bhaskara')) {
+				// Cualquier regla terminal que produzca soluciones (Bhaskara o Factorización)
+				if (
+					lastStep.terminal &&
+					lastStep.solutions !== undefined &&
+					lastStep.solutions.length > 0
+				) {
 					is_quadratic = true;
-					solutions = lastStep.solutions || [];
+					solutions = lastStep.solutions;
 					solutions_latex = lastStep.solutionsLatex || [];
 				}
 				if (
