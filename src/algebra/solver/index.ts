@@ -7,6 +7,7 @@ import { CombineLikeTermsRule } from '../rules/combineLikeTerms';
 import { MoveTermsRule } from '../rules/moveTerms';
 import { DivideBothSidesRule } from '../rules/divideBothSides';
 import { QuadraticFormulaRule } from '../rules/quadratic';
+import { FactorizationRule } from '../rules/factorization';
 import { NoSolutionRule } from '../rules/noSolution';
 
 import { ClearDenominatorsRule } from '../rules/clearDenominators';
@@ -33,7 +34,8 @@ export class Solver {
 			new NoSolutionRule(),           // 5b. Detectar contradicción: a=b (sin incógnita, a≠b)
 			new SqrtDomainCheckRule(),      // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
 			new SquareBothSidesRule(),      // 6b. Elevar al cuadrado ambos lados para quitar raíces
-			new QuadraticFormulaRule(),     // 7. Fórmula cuadrática (ANTES de mover términos)
+			new FactorizationRule(),        // 7a. Factorización entera (método pedagógico preferido)
+			new QuadraticFormulaRule(),     // 7b. Fórmula cuadrática (cuando no factoriza en ℤ)
 			new MoveTermsRule(),            // 8. Transponer términos en ecuaciones
 			new DivideBothSidesRule(),      // 9. Dividir ambos lados por el coeficiente
 		];

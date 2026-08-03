@@ -44,7 +44,7 @@ describe('Solver', () => {
 		expect(last.solutions).toEqual([]);
 	});
 
-	it('solves (x+2)^2=4 by expanding and applying quadratic formula', () => {
+	it('solves (x+2)^2=4 by expanding and solving (solutions x=0 and x=-4)', () => {
 		const solver = new Solver();
 		const ast = parse(tokenize('(x+2)^2 = 4'));
 		const steps = solver.solve(ast);
@@ -53,9 +53,9 @@ describe('Solver', () => {
 		const expandStep = steps.find(s => s.title.includes('potencia'));
 		expect(expandStep).toBeDefined();
 
-		// El último paso debe ser Bhaskara con 2 soluciones: x=0 y x=-4
+		// El último paso resuelve con Factorización o Bhaskara con 2 soluciones: x=0 y x=-4
 		const last = steps[steps.length - 1];
-		expect(last.title).toContain('Bhaskara');
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
 		expect(last.solutions).toHaveLength(2);
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		expect(sols[0]).toBeCloseTo(-4, 4);
@@ -68,7 +68,7 @@ describe('Solver', () => {
 		const steps = solver.solve(ast);
 
 		const last = steps[steps.length - 1];
-		expect(last.title).toContain('Bhaskara');
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
 		expect(last.solutions).toHaveLength(2);
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		expect(sols[0]).toBeCloseTo(0, 4);
@@ -81,7 +81,7 @@ describe('Solver', () => {
 		const steps = solver.solve(ast);
 
 		const last = steps[steps.length - 1];
-		expect(last.title).toContain('Bhaskara');
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
 		expect(last.solutions).toHaveLength(2);
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		expect(sols[0]).toBeCloseTo(-1, 4);
@@ -95,7 +95,8 @@ describe('Solver', () => {
 
 		expect(steps.length).toBeGreaterThan(0);
 		const last = steps[steps.length - 1];
-		expect(last.title).toContain('Bhaskara');
+		// 6x² - 7x + 2 = 0 → (2x-1)(3x-2) = 0 → factoriza en ℤ ó Bhaskara
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
 		expect(last.solutions).toHaveLength(2);
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		// x^2 - 7/6 x + 1/3 = 0 -> 6x^2 - 7x + 2 = 0 -> (2x-1)(3x-2) = 0 -> x = 1/2 (0.5) and x = 2/3 (0.666666...)
@@ -110,7 +111,7 @@ describe('Solver', () => {
 
 		expect(steps.length).toBeGreaterThan(0);
 		const last = steps[steps.length - 1];
-		expect(last.title).toContain('Bhaskara');
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
 		expect(last.solutions).toHaveLength(2);
 		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
 		expect(sols[0]).toBeCloseTo(0.5, 4);
@@ -178,6 +179,68 @@ describe('Solver', () => {
 		expect(last.title).toContain('Contradicción');
 		expect(last.solutions).toEqual([]);
 		expect(last.terminal).toBe(true);
+	});
+
+	// ── Factorización ──────────────────────────────────────────────────────────
+
+	it('factorizes x^2 - 5x + 6 = 0 → (x-2)(x-3) = 0, solutions x=2 and x=3', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 - 5x + 6 = 0'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Factorización');
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(2, 6);
+		expect(sols[1]).toBeCloseTo(3, 6);
+	});
+
+	it('factorizes x^2 + 5x + 6 = 0 → (x+2)(x+3) = 0, solutions x=-3 and x=-2', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 + 5x + 6 = 0'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Factorización');
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(-3, 6);
+		expect(sols[1]).toBeCloseTo(-2, 6);
+	});
+
+	it('factorizes x^2 - 4x + 4 = 0 → double root x=2', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 - 4x + 4 = 0'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Factorización');
+		expect(last.solutions).toHaveLength(2);
+		(last.solutions as unknown as number[]).forEach(s => expect(s).toBeCloseTo(2, 6));
+	});
+
+	it('factorizes 2x^2 - 7x + 3 = 0 → (x-3)(2x-1) = 0, solutions x=1/2 and x=3', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('2x^2 - 7x + 3 = 0'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Factorización');
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(0.5, 6);
+		expect(sols[1]).toBeCloseTo(3, 6);
+	});
+
+	it('uses quadratic formula (not factorization) for x^2 + 4x + 3 = 4 (irrational roots)', () => {
+		// x^2 + 4x - 1 = 0 → Δ = 16 + 4 = 20, √20 ∉ ℤ → no factoriza en ℤ → Bhaskara
+		const solver = new Solver();
+		const ast = parse(tokenize('x^2 + 4x + 3 = 4'));
+		const steps = solver.solve(ast);
+
+		const last = steps[steps.length - 1];
+		expect(last.title).toContain('Bhaskara');
 	});
 });
 
