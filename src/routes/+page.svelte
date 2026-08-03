@@ -20,6 +20,7 @@
 		result_latex: string;
 		is_quadratic: boolean;
 		is_no_solution: boolean;
+		is_irrational: boolean;
 		solutions: readonly number[];
 		solutions_latex: readonly string[];
 	} | null>(null);
@@ -62,29 +63,27 @@
 
 			let is_quadratic = false;
 			let is_no_solution = false;
+			let is_irrational = false;
 			let solutions: readonly number[] = [];
 			let solutions_latex: readonly string[] = [];
 
 			if (steps.length > 0) {
 				const lastStep = steps[steps.length - 1];
-				// Cualquier regla terminal que produzca soluciones (Bhaskara o Factorización)
-				if (
-					lastStep.terminal &&
-					lastStep.solutions !== undefined &&
-					lastStep.solutions.length > 0
-				) {
-					is_quadratic = true;
-					solutions = lastStep.solutions;
-					solutions_latex = lastStep.solutionsLatex || [];
+
+				if (lastStep.terminal && lastStep.solutions !== undefined) {
+					if (lastStep.solutions.length === 0) {
+						is_no_solution = true;
+					} else {
+						is_quadratic = true;
+						solutions = lastStep.solutions;
+						solutions_latex = lastStep.solutionsLatex || [];
+					}
 				}
-				if (
-					lastStep.terminal &&
-					lastStep.solutions !== undefined &&
-					lastStep.solutions.length === 0 &&
-					!lastStep.title.includes('Bhaskara')
-				) {
-					is_no_solution = true;
-				}
+			}
+
+			// Detectar si la solución es irracional (contiene radicales \sqrt)
+			if (solutions_latex.some((s) => s.includes('\\sqrt')) || result_latex.includes('\\sqrt')) {
+				is_irrational = true;
 			}
 
 			data = {
@@ -93,6 +92,7 @@
 				result_latex,
 				is_quadratic,
 				is_no_solution,
+				is_irrational,
 				solutions,
 				solutions_latex
 			};
@@ -402,24 +402,33 @@
 				<div class="result-panel-body notranslate" translate="no">
 					{#if data.is_no_solution}
 						<div class="no-real-sol">
-							<div class="badge">∅ &nbsp; Sin solución</div>
+							<div class="badge">∅ &nbsp; No tiene soluciones reales</div>
 							<MathExpression latex="S = \emptyset" displayMode={true} />
-							<p style="font-size:0.8rem;color:var(--text2);max-width:340px;">
+							<p style="font-size:0.8rem;color:var(--text2);max-width:340px;text-align:center;">
 								No existe ningún valor real que satisfaga esta ecuación.
 							</p>
 						</div>
 					{:else if data.is_quadratic}
 						{#if data.solutions.length === 0}
 							<div class="no-real-sol">
-								<div class="badge">∅ &nbsp; Sin raíces reales</div>
-								<p style="font-size:0.8rem;color:var(--text2);">
+								<div class="badge">∅ &nbsp; No tiene soluciones reales</div>
+								<MathExpression latex="S = \emptyset" displayMode={true} />
+								<p style="font-size:0.8rem;color:var(--text2);max-width:340px;text-align:center;">
 									El discriminante es negativo. La ecuación no tiene soluciones en ℝ.
 								</p>
 							</div>
 						{:else if data.solutions.length === 1}
+							{#if data.is_irrational}
+								<div class="irrational-badge">
+									<Sparkles size={13} />
+									<span>Solución irracional</span>
+								</div>
+							{/if}
 							<div class="solutions-grid" style="max-width:280px;margin:0 auto;">
-								<div class="solution-box double-root">
-									<span class="sol-label">Raíz doble</span>
+								<div class="solution-box double-root" class:irrational={data.is_irrational}>
+									<span class="sol-label">
+										{data.is_irrational ? 'Raíz doble irracional' : 'Raíz doble'}
+									</span>
 									<MathExpression
 										latex={`x = ${data.solutions_latex?.[0] ?? (Number.isInteger(data.solutions[0]) ? data.solutions[0] : parseFloat(data.solutions[0].toFixed(4)))}`}
 										displayMode={false}
@@ -427,10 +436,18 @@
 								</div>
 							</div>
 						{:else}
+							{#if data.is_irrational}
+								<div class="irrational-badge">
+									<Sparkles size={13} />
+									<span>Solución irracional</span>
+								</div>
+							{/if}
 							<div class="solutions-grid">
 								{#each data.solutions as sol, i (i)}
-									<div class="solution-box">
-										<span class="sol-label">Solución {i + 1}</span>
+									<div class="solution-box" class:irrational={data.is_irrational}>
+										<span class="sol-label">
+											{data.is_irrational ? `Solución ${i + 1} (Irracional)` : `Solución ${i + 1}`}
+										</span>
 										<MathExpression
 											latex={`x_{${i + 1}} = ${data.solutions_latex?.[i] ?? (Number.isInteger(sol) ? sol : parseFloat(sol.toFixed(4)))}`}
 											displayMode={false}
@@ -438,10 +455,26 @@
 									</div>
 								{/each}
 							</div>
+							{#if data.is_irrational}
+								<p style="font-size:0.78rem;color:var(--text2);margin-top:14px;text-align:center;">
+									Las soluciones son números irracionales pertenecientes a ℝ \ ℚ (expresados de
+									forma exacta con radicales).
+								</p>
+							{/if}
 						{/if}
 					{:else}
+						{#if data.is_irrational}
+							<div class="irrational-badge">
+								<Sparkles size={13} />
+								<span>Solución irracional</span>
+							</div>
+						{/if}
 						<MathExpression latex={data.result_latex} displayMode={true} />
-						{#if isAlreadySimplified}
+						{#if data.is_irrational}
+							<p style="font-size:0.78rem;color:var(--text2);margin-top:14px;text-align:center;">
+								La solución es un número irracional perteneciente a ℝ \ ℚ.
+							</p>
+						{:else if isAlreadySimplified}
 							<p style="font-size:0.8rem;color:var(--text3);margin-top:14px;">
 								Esta expresión ya está en su forma más simple.
 							</p>
