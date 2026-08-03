@@ -26,7 +26,7 @@ function simplifySquareRoot(d: number): { k: number; m: number } {
 function formatRadicalRoot(a: number, b: number, d: number, isPlus: boolean): string {
 	const { k, m } = simplifySquareRoot(d);
 	let N = -b;
-	let K = k;
+	const K = k;
 	let D = 2 * a;
 
 	if (D < 0) {
@@ -71,7 +71,15 @@ export class QuadraticFormulaRule implements Rule {
 
 	apply(expr: Expr): RuleResult {
 		if (expr.type !== 'Equation') {
-			return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0, solutions: [] };
+			return {
+				before: expr,
+				after: expr,
+				title: '',
+				explanation: '',
+				concept: '',
+				difficulty: 0,
+				solutions: []
+			};
 		}
 
 		const coefs = extractQuadraticCoefs(expr.left)!;
@@ -87,7 +95,6 @@ export class QuadraticFormulaRule implements Rule {
 		const negBStr = negB < 0 ? `(${negB})` : `${negB}`;
 		const computedStr = `${varName} = \\frac{${negBStr} \\pm \\sqrt{${discriminant}}}{${twoA}}`;
 		const discCalcStr = `\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot (${a}) \\cdot (${c}) = ${discriminant}`;
-
 
 		if (discriminant < 0) {
 			return {
@@ -110,7 +117,11 @@ export class QuadraticFormulaRule implements Rule {
 					{ type: 'math', content: discCalcStr },
 					{ type: 'text', content: 'Con los valores evaluados:' },
 					{ type: 'math', content: computedStr },
-					{ type: 'text', content: 'Como Δ < 0, la raíz cuadrada de un número negativo no existe en ℝ. La parábola no corta el eje x. La ecuación no tiene soluciones reales.' }
+					{
+						type: 'text',
+						content:
+							'Como Δ < 0, la raíz cuadrada de un número negativo no existe en ℝ. La parábola no corta el eje x. La ecuación no tiene soluciones reales.'
+					}
 				],
 				concept: 'Discriminante negativo → Sin raíces reales',
 				difficulty: 9,
@@ -144,7 +155,10 @@ export class QuadraticFormulaRule implements Rule {
 					{ type: 'math', content: discCalcStr },
 					{ type: 'text', content: 'Con los valores evaluados:' },
 					{ type: 'math', content: computedStr },
-					{ type: 'text', content: 'Como Δ = 0, la raíz es exactamente 0. Obtenemos una única raíz doble:' },
+					{
+						type: 'text',
+						content: 'Como Δ = 0, la raíz es exactamente 0. Obtenemos una única raíz doble:'
+					},
 					{ type: 'math', content: `${varName} = \\frac{${negBStr}}{${twoA}} = ${xLatex}` }
 				],
 				concept: 'Discriminante cero → Una raíz doble',
@@ -161,7 +175,6 @@ export class QuadraticFormulaRule implements Rule {
 		const x2 = (-b - sqrtD) / (2 * a);
 
 		let x1Expr: Expr;
-		let x2Expr: Expr;
 		let x1Latex: string;
 		let x2Latex: string;
 
@@ -182,11 +195,11 @@ export class QuadraticFormulaRule implements Rule {
 			x1Latex = formatFractionLatex(num1, den);
 			x2Latex = formatFractionLatex(num2, den);
 			x1Expr = createFractionExpr(num1, den);
-			x2Expr = createFractionExpr(num2, den);
 
 			const g1 = gcd(Math.abs(num1), Math.abs(den));
 			const g2 = gcd(Math.abs(num2), Math.abs(den));
-			const needsSimplification = (g1 > 1 && rawLatex1 !== x1Latex) || (g2 > 1 && rawLatex2 !== x2Latex);
+			const needsSimplification =
+				(g1 > 1 && rawLatex1 !== x1Latex) || (g2 > 1 && rawLatex2 !== x2Latex);
 
 			if (needsSimplification) {
 				// Mostrar primero las fracciones en bruto
@@ -244,7 +257,6 @@ export class QuadraticFormulaRule implements Rule {
 			x1Latex = formatRadicalRoot(a, b, discriminant, true);
 			x2Latex = formatRadicalRoot(a, b, discriminant, false);
 			x1Expr = { type: 'Variable', name: x1Latex };
-			x2Expr = { type: 'Variable', name: x2Latex };
 			simplificationBlocks.push({
 				type: 'text',
 				content: 'Como Δ > 0, obtenemos dos soluciones reales distintas:'

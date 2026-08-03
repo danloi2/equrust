@@ -3,8 +3,10 @@ import { formatToLatex } from '../formatter/index';
 
 function containsVariable(expr: Expr): boolean {
 	switch (expr.type) {
-		case 'Variable': return true;
-		case 'Number': return false;
+		case 'Variable':
+			return true;
+		case 'Number':
+			return false;
 		case 'Add':
 		case 'Multiply':
 		case 'Divide':
@@ -39,15 +41,6 @@ function buildAdd(terms: Expr[]): Expr {
 	return terms.slice(1).reduce<Expr>((acc, t) => ({ type: 'Add', left: acc, right: t }), terms[0]);
 }
 
-function hasQuadraticTerm(expr: Expr): boolean {
-	const terms = collectTerms(expr);
-	return terms.some((term) => {
-		if (term.type === 'Power' && term.base.type === 'Variable' && term.exponent.type === 'Number' && term.exponent.value === 2) return true;
-		if (term.type === 'Multiply' && term.left.type === 'Number' && term.right.type === 'Power' && term.right.base.type === 'Variable' && term.right.exponent.type === 'Number' && term.right.exponent.value === 2) return true;
-		return false;
-	});
-}
-
 function negateExpr(term: Expr): Expr {
 	if (term.type === 'Number') {
 		return { type: 'Number', value: -term.value };
@@ -55,7 +48,11 @@ function negateExpr(term: Expr): Expr {
 	if (term.type === 'Multiply') {
 		if (term.left.type === 'Number') {
 			if (term.left.value === -1) return term.right;
-			return { type: 'Multiply', left: { type: 'Number', value: -term.left.value }, right: term.right };
+			return {
+				type: 'Multiply',
+				left: { type: 'Number', value: -term.left.value },
+				right: term.right
+			};
 		}
 	}
 	return { type: 'Multiply', left: { type: 'Number', value: -1 }, right: term };
@@ -88,17 +85,30 @@ export class MoveTermsRule implements Rule {
 			if (node.type === 'Multiply') {
 				const { left, right } = node;
 				// n * (-m) → números directos negativos
-				if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0) return true;
+				if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0)
+					return true;
 				// x * (-n)
 				if (left.type === 'Variable' && right.type === 'Number' && right.value < 0) return true;
 				// n * ((-1) * m)  — patrón generado por ExpandPowerRule
-				if (left.type === 'Number' && right.type === 'Multiply' &&
-					right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+				if (
+					left.type === 'Number' &&
+					right.type === 'Multiply' &&
+					right.left.type === 'Number' &&
+					right.left.value === -1 &&
+					right.right.type === 'Number'
+				)
+					return true;
 				// x * ((-1) * m)  — patrón de x·(-5) via ExpandPowerRule
-				if (left.type === 'Variable' && right.type === 'Multiply' &&
-					right.left.type === 'Number' && right.left.value === -1) return true;
+				if (
+					left.type === 'Variable' &&
+					right.type === 'Multiply' &&
+					right.left.type === 'Number' &&
+					right.left.value === -1
+				)
+					return true;
 			}
-			if (node.type === 'Add') return hasUnsimplifiedNode(node.left) || hasUnsimplifiedNode(node.right);
+			if (node.type === 'Add')
+				return hasUnsimplifiedNode(node.left) || hasUnsimplifiedNode(node.right);
 			return false;
 		};
 		if (hasUnsimplifiedNode(expr.left) || hasUnsimplifiedNode(expr.right)) return false;
@@ -110,19 +120,29 @@ export class MoveTermsRule implements Rule {
 		const hasVarRight = rightTerms.some(containsVariable);
 
 		// Constante no-cero en la derecha, SOLO si la izquierda tiene cuadrático sin constante
-		const leftHasQuadratic = leftTerms.some((t) =>
-			(t.type === 'Power' && t.base.type === 'Variable' && t.exponent.type === 'Number' && t.exponent.value === 2) ||
-			(t.type === 'Multiply' && t.left.type === 'Number' && t.right.type === 'Power' && t.right.base.type === 'Variable' && t.right.exponent.type === 'Number' && t.right.exponent.value === 2)
+		const leftHasQuadratic = leftTerms.some(
+			(t) =>
+				(t.type === 'Power' &&
+					t.base.type === 'Variable' &&
+					t.exponent.type === 'Number' &&
+					t.exponent.value === 2) ||
+				(t.type === 'Multiply' &&
+					t.left.type === 'Number' &&
+					t.right.type === 'Power' &&
+					t.right.base.type === 'Variable' &&
+					t.right.exponent.type === 'Number' &&
+					t.right.exponent.value === 2)
 		);
 		const leftHasNoConst = !leftTerms.some(isConstant);
-		const hasConstRightToMoveForQuad = leftHasQuadratic && leftHasNoConst &&
-			rightTerms.some((t) => isConstant(t) && !isZero(t));
+		const hasConstRightToMoveForQuad =
+			leftHasQuadratic && leftHasNoConst && rightTerms.some((t) => isConstant(t) && !isZero(t));
 
 		return hasConstantLeft || hasVarRight || hasConstRightToMoveForQuad;
 	}
 
 	apply(expr: Expr): RuleResult {
-		if (expr.type !== 'Equation') return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
+		if (expr.type !== 'Equation')
+			return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
 
 		const leftTerms = collectTerms(expr.left);
 		const rightTerms = collectTerms(expr.right);
@@ -137,11 +157,12 @@ export class MoveTermsRule implements Rule {
 			const newLeft = buildAdd(remainingLeft);
 			const newRight = buildAdd([...rightTerms, negated]);
 
-			const opText = termToMove.type === 'Number' && termToMove.value > 0
-				? `Restar ${termToMove.value} a ambos lados`
-				: termToMove.type === 'Number' && termToMove.value < 0
-					? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
-					: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
+			const opText =
+				termToMove.type === 'Number' && termToMove.value > 0
+					? `Restar ${termToMove.value} a ambos lados`
+					: termToMove.type === 'Number' && termToMove.value < 0
+						? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
+						: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
 
 			const intermediate: Expr = {
 				type: 'Equation',
@@ -171,7 +192,9 @@ export class MoveTermsRule implements Rule {
 
 			const remainingRight = rightTerms.filter((_, i) => i !== varRightIdx);
 			const newLeft = buildAdd([...leftTerms, negated]);
-			const newRight = buildAdd(remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]);
+			const newRight = buildAdd(
+				remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]
+			);
 
 			const intermediate: Expr = {
 				type: 'Equation',
@@ -203,7 +226,9 @@ export class MoveTermsRule implements Rule {
 
 				const remainingRight = rightTerms.filter((_, i) => i !== constRightIdx);
 				const newLeft = buildAdd([...leftTerms, negated]);
-				const newRight = buildAdd(remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]);
+				const newRight = buildAdd(
+					remainingRight.length > 0 ? remainingRight : [{ type: 'Number', value: 0 }]
+				);
 
 				const intermediate: Expr = {
 					type: 'Equation',
@@ -211,11 +236,12 @@ export class MoveTermsRule implements Rule {
 					right: { type: 'Add', left: expr.right, right: negated }
 				};
 
-				const opText = termToMove.type === 'Number' && termToMove.value > 0
-					? `Restar ${termToMove.value} a ambos lados`
-					: termToMove.type === 'Number' && termToMove.value < 0
-						? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
-						: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
+				const opText =
+					termToMove.type === 'Number' && termToMove.value > 0
+						? `Restar ${termToMove.value} a ambos lados`
+						: termToMove.type === 'Number' && termToMove.value < 0
+							? `Sumar ${Math.abs(termToMove.value)} a ambos lados`
+							: `Aplicar la opuesta de ${formatToLatex(termToMove)} a ambos lados`;
 
 				return {
 					before: expr,

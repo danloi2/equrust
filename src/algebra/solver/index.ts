@@ -23,21 +23,21 @@ export class Solver {
 	constructor() {
 		// Orden de prioridad estricto (de mayor a menor)
 		this.rules = [
-			new ClearDenominatorsRule(),    // 0. Eliminar denominadores (MCM) antes que nada
-			new SimplifySignsRule(),        // 1. Simplificar signos (-1*-1 → 1, -1*2 → -2)
-			new SimplifyConstantsRule(),    // 2. Operar constantes (2+3 → 5)
-			new SimplifyParenthesisRule(),  // 3. Eliminar paréntesis redundantes
-			new DistributiveRule(),         // 4a. Propiedad distributiva
-			new ExpandPowerRule(),          // 4b. Expandir (expr)^n → producto repetido
-			new ReorderTermsRule(),         // 4c. Reordenar términos por grado (x² → x → cte)
-			new CombineLikeTermsRule(),     // 5. Agrupar términos semejantes
-			new NoSolutionRule(),           // 5b. Detectar contradicción: a=b (sin incógnita, a≠b)
-			new SqrtDomainCheckRule(),      // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
-			new SquareBothSidesRule(),      // 6b. Elevar al cuadrado ambos lados para quitar raíces
-			new FactorizationRule(),        // 7a. Factorización entera (método pedagógico preferido)
-			new QuadraticFormulaRule(),     // 7b. Fórmula cuadrática (cuando no factoriza en ℤ)
-			new MoveTermsRule(),            // 8. Transponer términos en ecuaciones
-			new DivideBothSidesRule(),      // 9. Dividir ambos lados por el coeficiente
+			new ClearDenominatorsRule(), // 0. Eliminar denominadores (MCM) antes que nada
+			new SimplifySignsRule(), // 1. Simplificar signos (-1*-1 → 1, -1*2 → -2)
+			new SimplifyConstantsRule(), // 2. Operar constantes (2+3 → 5)
+			new SimplifyParenthesisRule(), // 3. Eliminar paréntesis redundantes
+			new DistributiveRule(), // 4a. Propiedad distributiva
+			new ExpandPowerRule(), // 4b. Expandir (expr)^n → producto repetido
+			new ReorderTermsRule(), // 4c. Reordenar términos por grado (x² → x → cte)
+			new CombineLikeTermsRule(), // 5. Agrupar términos semejantes
+			new NoSolutionRule(), // 5b. Detectar contradicción: a=b (sin incógnita, a≠b)
+			new SqrtDomainCheckRule(), // 6a. Verificar dominio: √f(x)=c con c<0 → sin solución
+			new SquareBothSidesRule(), // 6b. Elevar al cuadrado ambos lados para quitar raíces
+			new FactorizationRule(), // 7a. Factorización entera (método pedagógico preferido)
+			new QuadraticFormulaRule(), // 7b. Fórmula cuadrática (cuando no factoriza en ℤ)
+			new MoveTermsRule(), // 8. Transponer términos en ecuaciones
+			new DivideBothSidesRule() // 9. Dividir ambos lados por el coeficiente
 		];
 	}
 

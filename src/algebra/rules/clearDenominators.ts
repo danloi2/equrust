@@ -1,4 +1,4 @@
-import type { Expr, EquationNode, Rule, RuleResult } from '../types/index';
+import type { Expr, Rule, RuleResult } from '../types/index';
 
 function collectDenomsInner(expr: Expr, out: Set<number>) {
 	if (expr.type === 'Divide' && expr.right.type === 'Number') {
@@ -7,7 +7,7 @@ function collectDenomsInner(expr: Expr, out: Set<number>) {
 			out.add(absDenom);
 		}
 	}
-	
+
 	switch (expr.type) {
 		case 'Add':
 		case 'Multiply':
@@ -65,9 +65,17 @@ function multiplyBy(expr: Expr, factor: number): Expr {
 				return { type: 'Multiply', left: expr.left, right: multiplyBy(expr.right, factor) };
 			}
 			if (expr.left.type === 'Number') {
-				return { type: 'Multiply', left: { type: 'Number', value: expr.left.value * factor }, right: expr.right };
+				return {
+					type: 'Multiply',
+					left: { type: 'Number', value: expr.left.value * factor },
+					right: expr.right
+				};
 			} else if (expr.right.type === 'Number') {
-				return { type: 'Multiply', left: expr.left, right: { type: 'Number', value: expr.right.value * factor } };
+				return {
+					type: 'Multiply',
+					left: expr.left,
+					right: { type: 'Number', value: expr.right.value * factor }
+				};
 			} else {
 				return { type: 'Multiply', left: { type: 'Number', value: factor }, right: expr };
 			}
@@ -90,7 +98,7 @@ export class ClearDenominatorsRule implements Rule {
 		if (expr.type !== 'Equation') return false;
 		// Si la variable ya está aislada (ej. x = 2/3), no se deben eliminar denominadores
 		if (expr.left.type === 'Variable') return false;
-		
+
 		const denoms = new Set<number>();
 		collectDenomsInner(expr.left, denoms);
 		collectDenomsInner(expr.right, denoms);
@@ -99,7 +107,8 @@ export class ClearDenominatorsRule implements Rule {
 	}
 
 	apply(expr: Expr): RuleResult {
-		if (expr.type !== 'Equation') return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
+		if (expr.type !== 'Equation')
+			return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
 
 		const denoms = new Set<number>();
 		collectDenomsInner(expr.left, denoms);

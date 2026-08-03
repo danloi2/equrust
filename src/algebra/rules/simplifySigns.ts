@@ -24,26 +24,50 @@ export class SimplifySignsRule implements Rule {
 		if (node.type !== 'Multiply') return false;
 		const { left, right } = node;
 		// (-1) * (-1) → 1
-		if (left.type === 'Number' && left.value === -1 && right.type === 'Number' && right.value === -1) return true;
+		if (
+			left.type === 'Number' &&
+			left.value === -1 &&
+			right.type === 'Number' &&
+			right.value === -1
+		)
+			return true;
 		// (-1) * número → número negativo
 		if (left.type === 'Number' && left.value === -1 && right.type === 'Number') return true;
 		// número * (-1) → número negativo
 		if (right.type === 'Number' && right.value === -1 && left.type === 'Number') return true;
 		// (-1) * (-1 * expr) → expr (doble negativo)
 		if (
-			left.type === 'Number' && left.value === -1 &&
-			right.type === 'Multiply' && right.left.type === 'Number' && right.left.value === -1
-		) return true;
+			left.type === 'Number' &&
+			left.value === -1 &&
+			right.type === 'Multiply' &&
+			right.left.type === 'Number' &&
+			right.left.value === -1
+		)
+			return true;
 		// Variable * (-Number) → -n * Variable
 		if (left.type === 'Variable' && right.type === 'Number' && right.value < 0) return true;
 		// Number * (-Number) → -(n*m)
-		if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0) return true;
+		if (left.type === 'Number' && left.value > 0 && right.type === 'Number' && right.value < 0)
+			return true;
 		// Variable * ((-1) * Number) → -n * Variable  (patrón de ExpandPowerRule)
-		if (left.type === 'Variable' && right.type === 'Multiply' &&
-			right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+		if (
+			left.type === 'Variable' &&
+			right.type === 'Multiply' &&
+			right.left.type === 'Number' &&
+			right.left.value === -1 &&
+			right.right.type === 'Number'
+		)
+			return true;
 		// Number * ((-1) * Number) → -(n*m)  (patrón de ExpandPowerRule: 5*(-1*5))
-		if (left.type === 'Number' && left.value > 0 && right.type === 'Multiply' &&
-			right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') return true;
+		if (
+			left.type === 'Number' &&
+			left.value > 0 &&
+			right.type === 'Multiply' &&
+			right.left.type === 'Number' &&
+			right.left.value === -1 &&
+			right.right.type === 'Number'
+		)
+			return true;
 		// 1 * expr → expr
 		if (left.type === 'Number' && left.value === 1) return true;
 		// expr * 1 → expr
@@ -70,7 +94,12 @@ export class SimplifySignsRule implements Rule {
 				return left;
 			}
 			// (-1) * (-1) → 1
-			if (left.type === 'Number' && left.value === -1 && right.type === 'Number' && right.value === -1) {
+			if (
+				left.type === 'Number' &&
+				left.value === -1 &&
+				right.type === 'Number' &&
+				right.value === -1
+			) {
 				return { type: 'Number', value: 1 };
 			}
 			// (-1) * N → número negativo directo
@@ -83,8 +112,11 @@ export class SimplifySignsRule implements Rule {
 			}
 			// (-1) * (-1 * expr) → expr
 			if (
-				left.type === 'Number' && left.value === -1 &&
-				right.type === 'Multiply' && right.left.type === 'Number' && right.left.value === -1
+				left.type === 'Number' &&
+				left.value === -1 &&
+				right.type === 'Multiply' &&
+				right.left.type === 'Number' &&
+				right.left.value === -1
 			) {
 				return right.right;
 			}
@@ -97,13 +129,28 @@ export class SimplifySignsRule implements Rule {
 				return { type: 'Number', value: left.value * right.value };
 			}
 			// Variable * ((-1) * Number) → (-n) * Variable  ej: x * (-1*5) → -5x
-			if (left.type === 'Variable' && right.type === 'Multiply' &&
-				right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') {
-				return { type: 'Multiply', left: { type: 'Number', value: -right.right.value }, right: left };
+			if (
+				left.type === 'Variable' &&
+				right.type === 'Multiply' &&
+				right.left.type === 'Number' &&
+				right.left.value === -1 &&
+				right.right.type === 'Number'
+			) {
+				return {
+					type: 'Multiply',
+					left: { type: 'Number', value: -right.right.value },
+					right: left
+				};
 			}
 			// Number * ((-1) * Number) → Number  ej: 5 * (-1*5) → -25
-			if (left.type === 'Number' && left.value > 0 && right.type === 'Multiply' &&
-				right.left.type === 'Number' && right.left.value === -1 && right.right.type === 'Number') {
+			if (
+				left.type === 'Number' &&
+				left.value > 0 &&
+				right.type === 'Multiply' &&
+				right.left.type === 'Number' &&
+				right.left.value === -1 &&
+				right.right.type === 'Number'
+			) {
 				return { type: 'Number', value: -(left.value * right.right.value) };
 			}
 			return null;
@@ -112,7 +159,8 @@ export class SimplifySignsRule implements Rule {
 			before: expr,
 			after,
 			title: 'Simplificar signos',
-			explanation: 'Un negativo multiplicado por otro negativo resulta en positivo, o se simplifica el signo.',
+			explanation:
+				'Un negativo multiplicado por otro negativo resulta en positivo, o se simplifica el signo.',
 			concept: 'Regla de los signos',
 			difficulty: 1
 		};

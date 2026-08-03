@@ -2,12 +2,7 @@
 	import MathExpression from './MathExpression.svelte';
 	import { Delete, RotateCcw, Sparkles } from '@lucide/svelte';
 
-	let {
-		onInsert,
-		onBackspace,
-		onClear,
-		onSolve
-	} = $props<{
+	let { onInsert, onBackspace, onClear, onSolve } = $props<{
 		onInsert: (text: string, offset?: number) => void;
 		onBackspace: () => void;
 		onClear: () => void;
@@ -100,8 +95,8 @@
 			<div class="vk-main-grid">
 				<!-- Numpad 5 columnas -->
 				<div class="numpad-grid">
-					{#each NUMPAD_ROWS as row}
-						{#each row as key}
+					{#each NUMPAD_ROWS as row, rowIndex (rowIndex)}
+						{#each row as key (key.label)}
 							<button
 								type="button"
 								class="vk-btn {variantClass(key)}"
@@ -131,23 +126,18 @@
 					>
 						<RotateCcw size={15} />
 					</button>
-					<button
-						type="button"
-						class="vk-btn action-btn solve"
-						title="Resolver"
-						onclick={onSolve}
-					>
+					<button type="button" class="vk-btn action-btn solve" title="Resolver" onclick={onSolve}>
 						<Sparkles size={16} />
 					</button>
 				</div>
 			</div>
 		</div>
 
-	<!-- ─── Pestaña Funciones ─── -->
+		<!-- ─── Pestaña Funciones ─── -->
 	{:else}
 		<div class="vk-body">
 			<div class="fn-grid">
-				{#each FUNCTIONS as item}
+				{#each FUNCTIONS as item (item.label)}
 					<button
 						type="button"
 						class="vk-btn fn-btn"
@@ -168,10 +158,20 @@
 
 			<!-- Acciones también disponibles aquí -->
 			<div class="fn-actions">
-				<button type="button" class="vk-btn action-btn danger" title="Borrar carácter" onclick={onBackspace}>
+				<button
+					type="button"
+					class="vk-btn action-btn danger"
+					title="Borrar carácter"
+					onclick={onBackspace}
+				>
 					<Delete size={16} />
 				</button>
-				<button type="button" class="vk-btn action-btn clear" title="Limpiar todo" onclick={onClear}>
+				<button
+					type="button"
+					class="vk-btn action-btn clear"
+					title="Limpiar todo"
+					onclick={onClear}
+				>
 					<RotateCcw size={15} />
 				</button>
 				<button type="button" class="vk-btn action-btn solve" title="Resolver" onclick={onSolve}>
@@ -194,8 +194,14 @@
 	}
 
 	@keyframes vkFadeIn {
-		from { opacity: 0; transform: translateY(-8px); }
-		to   { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	/* Tabs */
@@ -263,7 +269,10 @@
 		font-size: 0.95rem;
 		font-weight: 600;
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s, transform 0.1s;
+		transition:
+			background 0.15s,
+			border-color 0.15s,
+			transform 0.1s;
 		user-select: none;
 	}
 	.vk-btn:hover {

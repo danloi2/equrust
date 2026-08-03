@@ -9,7 +9,6 @@ export type NodeType =
 	| 'Parenthesis'
 	| 'Sqrt';
 
-
 export interface BaseNode {
 	readonly type: NodeType;
 }

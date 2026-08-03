@@ -2,7 +2,6 @@
 	import type { RuleResult } from '../algebra/types';
 	import MathExpression from './MathExpression.svelte';
 	import { formatToLatex } from '../algebra/formatter';
-	import { ArrowRight } from '@lucide/svelte';
 
 	let { steps = [] } = $props<{ steps?: RuleResult[] }>();
 
@@ -11,7 +10,7 @@
 	}
 </script>
 
-{#each steps as step, i}
+{#each steps as step, i (i)}
 	<div class="step-card anim-fade-up" style="animation-delay: {i * 0.06}s">
 		<!-- Number column -->
 		<div class="step-number-col">{i + 1}</div>
@@ -41,7 +40,7 @@
 					<span class="icon">∅</span>
 					<span class="label">Sin solución en ℝ</span>
 					<div class="notranslate" translate="no">
-						<MathExpression latex={"S = \\emptyset"} displayMode={false} />
+						<MathExpression latex="S = \emptyset" displayMode={false} />
 					</div>
 				</div>
 			{:else if step.solutions.length === 1}
@@ -81,7 +80,7 @@
 			<!-- Explanation blocks -->
 			{#if step.explanationBlocks && step.explanationBlocks.length > 0}
 				<div class="step-explanation-blocks">
-					{#each step.explanationBlocks as block}
+					{#each step.explanationBlocks as block, blockIndex (blockIndex)}
 						{#if block.type === 'text'}
 							<p class="block-text">{block.content}</p>
 						{:else if block.type === 'math'}

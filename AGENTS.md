@@ -162,7 +162,7 @@ Ejemplo
 
 Equation
 
- Left
+Left
 
     Multiply
 
@@ -174,7 +174,7 @@ Equation
 
             Number(3)
 
- Right
+Right
 
     Number(10)
 
@@ -189,14 +189,14 @@ Cada nodo deberá ser un tipo discriminado.
 Ejemplo
 
 type Expr =
-    | NumberNode
-    | VariableNode
-    | AddNode
-    | MultiplyNode
-    | DivideNode
-    | PowerNode
-    | EquationNode
-    | ParenthesisNode
+| NumberNode
+| VariableNode
+| AddNode
+| MultiplyNode
+| DivideNode
+| PowerNode
+| EquationNode
+| ParenthesisNode
 
 No utilizar clases innecesarias.
 

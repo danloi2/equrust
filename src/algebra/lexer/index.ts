@@ -20,8 +20,16 @@ export interface Token {
 export function tokenize(input: string): Token[] {
 	// Normalizar superíndices Unicode (⁰, ¹, ², ³, ⁴, ⁵, ⁶, ⁷, ⁸, ⁹) a formato ^n
 	const superMap: Record<string, string> = {
-		'⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
-		'⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'
+		'⁰': '0',
+		'¹': '1',
+		'²': '2',
+		'³': '3',
+		'⁴': '4',
+		'⁵': '5',
+		'⁶': '6',
+		'⁷': '7',
+		'⁸': '8',
+		'⁹': '9'
 	};
 	input = input.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (match) => {
 		const digits = [...match].map((c) => superMap[c] ?? c).join('');
@@ -88,7 +96,11 @@ export function tokenize(input: string): Token[] {
 		// Variables (letras, usualmente x, y, z)
 		if (/[a-zA-Z]/.test(char) && !input.substring(i).startsWith('sqrt')) {
 			let name = '';
-			while (i < input.length && /[a-zA-Z]/.test(input[i]) && !input.substring(i).startsWith('sqrt')) {
+			while (
+				i < input.length &&
+				/[a-zA-Z]/.test(input[i]) &&
+				!input.substring(i).startsWith('sqrt')
+			) {
 				name += input[i];
 				i++;
 			}
@@ -149,4 +161,3 @@ export function tokenize(input: string): Token[] {
 
 	return tokens;
 }
-

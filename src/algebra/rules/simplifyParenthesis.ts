@@ -44,7 +44,8 @@ export class SimplifyParenthesisRule implements Rule {
 			before: expr,
 			after,
 			title: 'Eliminar paréntesis redundantes',
-			explanation: 'Los paréntesis no cambian el valor de la expresión en este contexto y se eliminan.',
+			explanation:
+				'Los paréntesis no cambian el valor de la expresión en este contexto y se eliminan.',
 			concept: 'Simplificación',
 			difficulty: 1
 		};

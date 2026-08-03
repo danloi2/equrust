@@ -8,9 +8,8 @@
 	import MathExpression from '../components/MathExpression.svelte';
 	import MathToolbar from '../components/MathToolbar.svelte';
 
-	import { Sigma, Sparkles, ArrowRight, AlertCircle, BookOpen, FlaskConical, Keyboard } from '@lucide/svelte';
+	import { Sigma, Sparkles, AlertCircle, BookOpen, FlaskConical, Keyboard } from '@lucide/svelte';
 	import pkg from '../../package.json';
-
 
 	let expression = $state('');
 	const solver = new Solver();
@@ -94,8 +93,7 @@
 			};
 		} catch (err: unknown) {
 			isError = true;
-			errorMsg =
-				err instanceof Error ? err.message : 'Error al analizar la expresión.';
+			errorMsg = err instanceof Error ? err.message : 'Error al analizar la expresión.';
 			data = null;
 		}
 	}
@@ -162,7 +160,7 @@
 		const candidateOps = [str, cleanStr, fixedStr];
 		for (const candidate of candidateOps) {
 			if (!candidate) continue;
-			const trailingOpMatch = candidate.match(/^(.*?)\s*([\+\-\*\/\^=])\s*$/);
+			const trailingOpMatch = candidate.match(/^(.*?)\s*([+*/^=-])\s*$/);
 			if (trailingOpMatch) {
 				const prefix = trailingOpMatch[1].trim();
 				const op = trailingOpMatch[2];
@@ -198,7 +196,6 @@
 	}
 
 	let livePreviewLatex = $derived(getLivePreviewLatex(expression));
-
 
 	let isKeyboardOpen = $state(false);
 
@@ -274,7 +271,8 @@
 		</div>
 
 		<p style="font-size:0.82rem;color:var(--text2);line-height:1.6;">
-			Motor algebraico propio — no calculadora. Cada transformación explicada con su razón matemática.
+			Motor algebraico propio — no calculadora. Cada transformación explicada con su razón
+			matemática.
 		</p>
 
 		<!-- Input -->
@@ -315,19 +313,12 @@
 					/>
 				{/if}
 
-				<button
-					id="solve-button"
-
-					type="submit"
-					class="solve-btn"
-					disabled={!expression.trim()}
-				>
+				<button id="solve-button" type="submit" class="solve-btn" disabled={!expression.trim()}>
 					<Sparkles size={15} />
 					Resolver paso a paso
 				</button>
 			</form>
 		</div>
-
 
 		<!-- Examples -->
 		<div>
@@ -335,7 +326,7 @@
 				<BookOpen size={11} /> Ejemplos
 			</div>
 			<div class="chips-wrap">
-				{#each EXAMPLES as ex}
+				{#each EXAMPLES as ex (ex)}
 					<button
 						id={`example-${ex.replace(/[\s=^*/()+]/g, '-')}`}
 						class="chip"
@@ -385,7 +376,9 @@
 				<div class="steps-section">
 					<div class="steps-header">
 						<div class="steps-dot"></div>
-						<span style="font-size:0.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);">
+						<span
+							style="font-size:0.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text2);"
+						>
 							{data.steps.length} paso{data.steps.length !== 1 ? 's' : ''} de resolución
 						</span>
 					</div>
@@ -404,26 +397,20 @@
 				<div class="result-panel-body notranslate" translate="no">
 					{#if data.is_no_solution}
 						<div class="no-real-sol">
-							<div class="badge">
-								∅ &nbsp; Sin solución
-							</div>
-							<MathExpression latex={"S = \\emptyset"} displayMode={true} />
+							<div class="badge">∅ &nbsp; Sin solución</div>
+							<MathExpression latex="S = \emptyset" displayMode={true} />
 							<p style="font-size:0.8rem;color:var(--text2);max-width:340px;">
 								No existe ningún valor real que satisfaga esta ecuación.
 							</p>
 						</div>
-
 					{:else if data.is_quadratic}
 						{#if data.solutions.length === 0}
 							<div class="no-real-sol">
-								<div class="badge">
-									∅ &nbsp; Sin raíces reales
-								</div>
+								<div class="badge">∅ &nbsp; Sin raíces reales</div>
 								<p style="font-size:0.8rem;color:var(--text2);">
 									El discriminante es negativo. La ecuación no tiene soluciones en ℝ.
 								</p>
 							</div>
-
 						{:else if data.solutions.length === 1}
 							<div class="solutions-grid" style="max-width:280px;margin:0 auto;">
 								<div class="solution-box double-root">
@@ -434,10 +421,9 @@
 									/>
 								</div>
 							</div>
-
 						{:else}
 							<div class="solutions-grid">
-								{#each data.solutions as sol, i}
+								{#each data.solutions as sol, i (i)}
 									<div class="solution-box">
 										<span class="sol-label">Solución {i + 1}</span>
 										<MathExpression
@@ -448,7 +434,6 @@
 								{/each}
 							</div>
 						{/if}
-
 					{:else}
 						<MathExpression latex={data.result_latex} displayMode={true} />
 						{#if isAlreadySimplified}
@@ -459,26 +444,34 @@
 					{/if}
 				</div>
 			</div>
-
 		{:else if livePreviewLatex}
 			<!-- Real-time Live Preview Panel in main workspace -->
 			<div class="expr-panel anim-fade-up" style="position:relative;margin-top:20px;">
-				<div class="section-label" style="position:absolute;top:14px;left:20px;display:flex;align-items:center;gap:6px;">
-					<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);"></span>
+				<div
+					class="section-label"
+					style="position:absolute;top:14px;left:20px;display:flex;align-items:center;gap:6px;"
+				>
+					<span
+						style="width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);"
+					></span>
 					Vista previa en tiempo real
 				</div>
 				<div class="notranslate" translate="no" style="padding-top:16px;">
 					<MathExpression latex={livePreviewLatex} displayMode={true} />
 				</div>
 				<div style="font-size:0.78rem;color:var(--text3);margin-top:16px;">
-					Presiona <kbd style="background:var(--surface2);padding:2px 6px;border-radius:4px;border:1px solid var(--border);">Enter</kbd> o haz clic en <strong>Resolver</strong> para ver los pasos completos
+					Presiona <kbd
+						style="background:var(--surface2);padding:2px 6px;border-radius:4px;border:1px solid var(--border);"
+						>Enter</kbd
+					>
+					o haz clic en <strong>Resolver</strong> para ver los pasos completos
 				</div>
 			</div>
 		{:else if !isError}
 			<!-- Empty state -->
 			<div class="empty-state">
 				<div style="opacity:.25;font-size:3.5rem;line-height:1;">∑</div>
-				<MathExpression latex={"ax^2 + bx + c = 0"} displayMode={true} />
+				<MathExpression latex="ax^2 + bx + c = 0" displayMode={true} />
 				<p style="font-size:0.88rem;color:var(--text3);text-align:center;max-width:300px;">
 					Escribe una ecuación en la barra lateral para empezar a resolverla paso a paso
 				</p>

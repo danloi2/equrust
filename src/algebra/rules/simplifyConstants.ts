@@ -4,7 +4,12 @@ import { gcd } from '../utils/fraction';
 
 function getConstantValue(node: Expr): number | null {
 	if (node.type === 'Number') return node.value;
-	if (node.type === 'Multiply' && node.left.type === 'Number' && node.left.value === -1 && node.right.type === 'Number') {
+	if (
+		node.type === 'Multiply' &&
+		node.left.type === 'Number' &&
+		node.left.value === -1 &&
+		node.right.type === 'Number'
+	) {
 		return -node.right.value;
 	}
 	if (node.type === 'Multiply' && node.left.type === 'Number' && node.right.type === 'Number') {
@@ -35,32 +40,59 @@ export class SimplifyConstantsRule implements Rule {
 				const cR = getConstantValue(node.right);
 				if (cL !== null && cR !== null) canApply = true;
 				if (node.left.type === 'Add' && cR !== null) {
-					if (getConstantValue(node.left.left) !== null || getConstantValue(node.left.right) !== null) canApply = true;
+					if (
+						getConstantValue(node.left.left) !== null ||
+						getConstantValue(node.left.right) !== null
+					)
+						canApply = true;
 				}
 				if (node.right.type === 'Add' && cL !== null) {
-					if (getConstantValue(node.right.left) !== null || getConstantValue(node.right.right) !== null) canApply = true;
+					if (
+						getConstantValue(node.right.left) !== null ||
+						getConstantValue(node.right.right) !== null
+					)
+						canApply = true;
 				}
 			}
 			if (node.type === 'Multiply') {
 				if (node.left.type === 'Number' && node.right.type === 'Number') canApply = true;
-				if (node.left.type === 'Number' && node.right.type === 'Multiply' && node.right.left.type === 'Number') canApply = true;
+				if (
+					node.left.type === 'Number' &&
+					node.right.type === 'Multiply' &&
+					node.right.left.type === 'Number'
+				)
+					canApply = true;
 				// x * x → x²
-				if (node.left.type === 'Variable' && node.right.type === 'Variable' && node.left.name === node.right.name) canApply = true;
+				if (
+					node.left.type === 'Variable' &&
+					node.right.type === 'Variable' &&
+					node.left.name === node.right.name
+				)
+					canApply = true;
 				// n * x * x → n * x²  (Multiply(n, Multiply(x, x)))
-				if (node.left.type === 'Number' && node.right.type === 'Multiply' && node.right.left.type === 'Variable' && node.right.right.type === 'Variable' && node.right.left.name === node.right.right.name) canApply = true;
+				if (
+					node.left.type === 'Number' &&
+					node.right.type === 'Multiply' &&
+					node.right.left.type === 'Variable' &&
+					node.right.right.type === 'Variable' &&
+					node.right.left.name === node.right.right.name
+				)
+					canApply = true;
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
 				if (node.left.value % node.right.value === 0) canApply = true;
 				else if (gcd(Math.abs(node.left.value), Math.abs(node.right.value)) > 1) canApply = true;
 			}
-			if (node.type === 'Power' && node.base.type === 'Number' && node.exponent.type === 'Number') canApply = true;
+			if (node.type === 'Power' && node.base.type === 'Number' && node.exponent.type === 'Number')
+				canApply = true;
 			if (
 				node.type === 'Power' &&
 				node.base.type === 'Multiply' &&
 				node.base.left.type === 'Number' &&
 				node.base.right.type === 'Variable' &&
 				node.exponent.type === 'Number'
-			) canApply = true;
+			)
+				canApply = true;
 			return null;
 		});
 		return canApply;
@@ -72,7 +104,7 @@ export class SimplifyConstantsRule implements Rule {
 		let fractionGcd = 0;
 		let fractionNum = 0;
 		let fractionDen = 0;
-		
+
 		const after = mapAST(expr, (node) => {
 			if (applied) return null;
 
@@ -119,7 +151,11 @@ export class SimplifyConstantsRule implements Rule {
 					applied = true;
 					return { type: 'Number', value: node.left.value * node.right.value };
 				}
-				if (node.left.type === 'Number' && node.right.type === 'Multiply' && node.right.left.type === 'Number') {
+				if (
+					node.left.type === 'Number' &&
+					node.right.type === 'Multiply' &&
+					node.right.left.type === 'Number'
+				) {
 					applied = true;
 					return {
 						type: 'Multiply',
@@ -128,14 +164,28 @@ export class SimplifyConstantsRule implements Rule {
 					};
 				}
 				// x * x → x²
-				if (node.left.type === 'Variable' && node.right.type === 'Variable' && node.left.name === node.right.name) {
+				if (
+					node.left.type === 'Variable' &&
+					node.right.type === 'Variable' &&
+					node.left.name === node.right.name
+				) {
 					applied = true;
 					return { type: 'Power', base: node.left, exponent: { type: 'Number', value: 2 } };
 				}
 				// n * (x * x) → n * x²
-				if (node.left.type === 'Number' && node.right.type === 'Multiply' && node.right.left.type === 'Variable' && node.right.right.type === 'Variable' && node.right.left.name === node.right.right.name) {
+				if (
+					node.left.type === 'Number' &&
+					node.right.type === 'Multiply' &&
+					node.right.left.type === 'Variable' &&
+					node.right.right.type === 'Variable' &&
+					node.right.left.name === node.right.right.name
+				) {
 					applied = true;
-					return { type: 'Multiply', left: node.left, right: { type: 'Power', base: node.right.left, exponent: { type: 'Number', value: 2 } } };
+					return {
+						type: 'Multiply',
+						left: node.left,
+						right: { type: 'Power', base: node.right.left, exponent: { type: 'Number', value: 2 } }
+					};
 				}
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
@@ -155,7 +205,11 @@ export class SimplifyConstantsRule implements Rule {
 					const newNum = num / g;
 					const newDen = den / g;
 					if (newDen === 1) return { type: 'Number', value: newNum };
-					return { type: 'Divide', left: { type: 'Number', value: newNum }, right: { type: 'Number', value: newDen } };
+					return {
+						type: 'Divide',
+						left: { type: 'Number', value: newNum },
+						right: { type: 'Number', value: newDen }
+					};
 				}
 			}
 			if (node.type === 'Power' && node.base.type === 'Number' && node.exponent.type === 'Number') {

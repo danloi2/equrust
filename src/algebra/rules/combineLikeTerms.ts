@@ -1,5 +1,4 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
-import { mapAST } from '../utils/ast';
 
 /**
  * Describe un término "semejante": tiene la misma clave (variable + exponente)
@@ -24,11 +23,7 @@ function extractLikeTerm(node: Expr): LikeTerm | null {
 	}
 
 	// Power: x^n → coef=1, exp=n
-	if (
-		node.type === 'Power' &&
-		node.base.type === 'Variable' &&
-		node.exponent.type === 'Number'
-	) {
+	if (node.type === 'Power' && node.base.type === 'Variable' && node.exponent.type === 'Number') {
 		return {
 			coef: 1,
 			key: `${node.base.name}^${node.exponent.value}`,
@@ -40,10 +35,20 @@ function extractLikeTerm(node: Expr): LikeTerm | null {
 	// Multiply: c * x → coef=c, exp=1
 	if (node.type === 'Multiply') {
 		if (node.left.type === 'Number' && node.right.type === 'Variable') {
-			return { coef: node.left.value, key: `${node.right.name}^1`, varName: node.right.name, exp: 1 };
+			return {
+				coef: node.left.value,
+				key: `${node.right.name}^1`,
+				varName: node.right.name,
+				exp: 1
+			};
 		}
 		if (node.right.type === 'Number' && node.left.type === 'Variable') {
-			return { coef: node.right.value, key: `${node.left.name}^1`, varName: node.left.name, exp: 1 };
+			return {
+				coef: node.right.value,
+				key: `${node.left.name}^1`,
+				varName: node.left.name,
+				exp: 1
+			};
 		}
 		// c * x^n → coef=c, exp=n
 		if (
@@ -81,9 +86,7 @@ function extractLikeTerm(node: Expr): LikeTerm | null {
 function buildTerm(t: LikeTerm): Expr {
 	const base: Expr = { type: 'Variable', name: t.varName };
 	const power: Expr =
-		t.exp === 1
-			? base
-			: { type: 'Power', base, exponent: { type: 'Number', value: t.exp } };
+		t.exp === 1 ? base : { type: 'Power', base, exponent: { type: 'Number', value: t.exp } };
 
 	if (t.coef === 1) return power;
 	if (t.coef === -1) return { type: 'Multiply', left: { type: 'Number', value: -1 }, right: power };
@@ -162,7 +165,10 @@ export class CombineLikeTermsRule implements Rule {
 
 	applies(expr: Expr): boolean {
 		if (expr.type === 'Equation') {
-			return combineAllLikeTermsInSide(expr.left).didCombine || combineAllLikeTermsInSide(expr.right).didCombine;
+			return (
+				combineAllLikeTermsInSide(expr.left).didCombine ||
+				combineAllLikeTermsInSide(expr.right).didCombine
+			);
 		}
 		return combineAllLikeTermsInSide(expr).didCombine;
 	}
@@ -176,7 +182,8 @@ export class CombineLikeTermsRule implements Rule {
 				before: expr,
 				after: { type: 'Equation', left: leftRes.newExpr, right: rightRes.newExpr },
 				title: 'Agrupar términos semejantes',
-				explanation: 'Se suman los coeficientes de los términos semejantes (que comparten la misma variable y exponente) en un solo paso.',
+				explanation:
+					'Se suman los coeficientes de los términos semejantes (que comparten la misma variable y exponente) en un solo paso.',
 				concept: 'Términos semejantes',
 				difficulty: 3
 			};

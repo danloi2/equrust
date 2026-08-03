@@ -10,23 +10,24 @@
 La prioridad del proyecto **NO es obtener la respuesta**, sino **enseñar matemáticas**.
 
 Cada transformación matemática es:
+
 - **Independiente**: Una regla a la vez, sin realizar múltiples saltos opacos.
 - **Verificable**: Se muestra la transformación explícita antes y después de aplicar la regla.
 - **Explicable**: Cada paso incluye título, justificación pedagógica y concepto matemático de referencia.
-- **Transparente**: Aplica la *Propiedad Uniforme de la Igualdad* (mostrando operaciones a ambos lados) y reordena los polinomios por grado de forma rigurosa.
+- **Transparente**: Aplica la _Propiedad Uniforme de la Igualdad_ (mostrando operaciones a ambos lados) y reordena los polinomios por grado de forma rigurosa.
 
 ---
 
 ## 🛠️ Stack Tecnológico
 
-| Capa | Tecnología |
-|---|---|
-| **Framework** | SvelteKit 5 (Runes mode `$state`, `$derived`) |
-| **Lenguaje** | TypeScript estricto |
-| **Renderizado Matemático** | KaTeX |
-| **Estilos** | TailwindCSS + Glassmorphism UI |
-| **Pruebas** | Vitest |
-| **Gestor de paquetes** | pnpm |
+| Capa                       | Tecnología                                    |
+| -------------------------- | --------------------------------------------- |
+| **Framework**              | SvelteKit 5 (Runes mode `$state`, `$derived`) |
+| **Lenguaje**               | TypeScript estricto                           |
+| **Renderizado Matemático** | KaTeX                                         |
+| **Estilos**                | TailwindCSS + Glassmorphism UI                |
+| **Pruebas**                | Vitest                                        |
+| **Gestor de paquetes**     | pnpm                                          |
 
 > 🔒 **100 % Cliente (SPA)**: La resolución matemática ocurre completamente local en el navegador. Sin backend, servidor ni llamadas a API externas.
 
@@ -75,7 +76,7 @@ src/algebra/
 
 4. **Soluciones Cuadráticas Exactas**:
    - Manejo estricto de la fórmula de Bhaskara con expresiones exactas en LaTeX:
-     - Raíces enteras / fraccionarias: $x = -\frac{5}{4}$ *(con el signo negativo antepuesto a la fracción)*.
+     - Raíces enteras / fraccionarias: $x = -\frac{5}{4}$ _(con el signo negativo antepuesto a la fracción)_.
      - Raíces irracionales con radicandos simplificados: $x_1 = -2 + \sqrt{5}, \quad x_2 = -2 - \sqrt{5}$.
 
 ---
@@ -83,6 +84,7 @@ src/algebra/
 ## 💻 Desarrollo Local
 
 ### Requisitos previos
+
 - Node.js 18+
 - pnpm 9+
 

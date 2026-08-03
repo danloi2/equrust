@@ -1,5 +1,4 @@
 import type { Expr, Rule, RuleResult } from '../types/index';
-import { mapAST } from '../utils/ast';
 
 /**
  * Determina el grado de un término individual:
@@ -31,7 +30,8 @@ function getDegree(node: Expr): number {
 		return node.right.exponent.value;
 	}
 	if (node.type === 'Variable') return 1;
-	if (node.type === 'Multiply' && node.left.type === 'Number' && node.right.type === 'Variable') return 1;
+	if (node.type === 'Multiply' && node.left.type === 'Number' && node.right.type === 'Variable')
+		return 1;
 	if (
 		node.type === 'Multiply' &&
 		node.left.type === 'Number' &&
@@ -39,7 +39,8 @@ function getDegree(node: Expr): number {
 		node.right.type === 'Multiply' &&
 		node.right.left.type === 'Number' &&
 		node.right.right.type === 'Variable'
-	) return 1;
+	)
+		return 1;
 	return 0;
 }
 
@@ -71,10 +72,10 @@ function sortByDegree(terms: Expr[]): Expr[] {
 
 /**
  * Regla: Ordenar términos por grado decreciente.
- * 
+ *
  * Reordena los sumandos de una expresión o ecuación (ambos miembros simultáneamente)
  * en orden decreciente de exponente: Grado 2 (x²) -> Grado 1 (x) -> Grado 0 (constantes).
- * 
+ *
  * Ejemplo: x² + 49 - 14x + x² = 25 + x → x² + x² - 14x + 49 = x + 25
  */
 export class ReorderTermsRule implements Rule {
@@ -98,19 +99,22 @@ export class ReorderTermsRule implements Rule {
 			const leftTerms = collectTerms(expr.left);
 			const rightTerms = collectTerms(expr.right);
 
-			const newLeft = leftTerms.length > 1 && !isSortedByDegree(leftTerms)
-				? buildAdd(sortByDegree(leftTerms))
-				: expr.left;
+			const newLeft =
+				leftTerms.length > 1 && !isSortedByDegree(leftTerms)
+					? buildAdd(sortByDegree(leftTerms))
+					: expr.left;
 
-			const newRight = rightTerms.length > 1 && !isSortedByDegree(rightTerms)
-				? buildAdd(sortByDegree(rightTerms))
-				: expr.right;
+			const newRight =
+				rightTerms.length > 1 && !isSortedByDegree(rightTerms)
+					? buildAdd(sortByDegree(rightTerms))
+					: expr.right;
 
 			return {
 				before: expr,
 				after: { type: 'Equation', left: newLeft, right: newRight },
 				title: 'Ordenar términos por grado',
-				explanation: 'Se reordenan los términos en ambos miembros de la ecuación en orden decreciente de grado (de mayor a menor exponente).',
+				explanation:
+					'Se reordenan los términos en ambos miembros de la ecuación en orden decreciente de grado (de mayor a menor exponente).',
 				concept: 'Ordenamiento de polinomios',
 				difficulty: 2
 			};

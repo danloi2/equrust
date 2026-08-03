@@ -1,5 +1,4 @@
 import type { Expr } from '../types/index';
-import { gcd } from './fraction';
 
 export interface QuadraticCoefs {
 	a: number;

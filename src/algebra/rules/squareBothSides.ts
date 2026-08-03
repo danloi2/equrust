@@ -18,7 +18,7 @@ export class SquareBothSidesRule implements Rule {
 		}
 
 		const inner = expr.left.inner;
-		
+
 		// El lado derecho se eleva al cuadrado
 		const newRight: Expr = {
 			type: 'Power',
@@ -30,7 +30,8 @@ export class SquareBothSidesRule implements Rule {
 			before: expr,
 			after: { type: 'Equation', left: inner, right: newRight },
 			title: 'Elevar al cuadrado',
-			explanation: 'Elevamos al cuadrado ambos miembros de la ecuación para eliminar la raíz cuadrada.',
+			explanation:
+				'Elevamos al cuadrado ambos miembros de la ecuación para eliminar la raíz cuadrada.',
 			concept: 'Álgebra — despeje: potenciar ambos lados',
 			difficulty: 5
 		};

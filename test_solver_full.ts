@@ -11,5 +11,5 @@ const solver = new Solver();
 const steps = solver.solve(ast);
 
 for (const step of steps) {
-    console.log(step.title, "->", formatToLatex(step.after));
+	console.log(step.title, '->', formatToLatex(step.after));
 }

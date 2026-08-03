@@ -10,16 +10,16 @@ describe('Solver', () => {
 		// Primero evalúa 3 * 4 = 12, luego 2 + 12 = 14
 		// El orden del AST para 2 + 3 * 4 es Add(2, Multiply(3, 4))
 		const ast = parse(tokenize('2 + 3 * 4'));
-		
+
 		const steps = solver.solve(ast);
-		
+
 		expect(steps.length).toBe(2);
 		expect(steps[0].after).toEqual({
 			type: 'Add',
 			left: { type: 'Number', value: 2 },
 			right: { type: 'Number', value: 12 }
 		});
-		
+
 		expect(steps[1].after).toEqual({
 			type: 'Number',
 			value: 14
@@ -50,7 +50,7 @@ describe('Solver', () => {
 		const steps = solver.solve(ast);
 
 		// Debe haber al menos un paso de expansión de potencia
-		const expandStep = steps.find(s => s.title.includes('potencia'));
+		const expandStep = steps.find((s) => s.title.includes('potencia'));
 		expect(expandStep).toBeDefined();
 
 		// El último paso resuelve con Factorización o Bhaskara con 2 soluciones: x=0 y x=-4
@@ -217,7 +217,7 @@ describe('Solver', () => {
 		const last = steps[steps.length - 1];
 		expect(last.title).toContain('Factorización');
 		expect(last.solutions).toHaveLength(2);
-		(last.solutions as unknown as number[]).forEach(s => expect(s).toBeCloseTo(2, 6));
+		(last.solutions as unknown as number[]).forEach((s) => expect(s).toBeCloseTo(2, 6));
 	});
 
 	it('factorizes 2x^2 - 7x + 3 = 0 → (x-3)(2x-1) = 0, solutions x=1/2 and x=3', () => {
@@ -243,4 +243,3 @@ describe('Solver', () => {
 		expect(last.title).toContain('Bhaskara');
 	});
 });
-

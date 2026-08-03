@@ -16,7 +16,7 @@ function extractLinearCoef(expr: Expr): number | null {
 /**
  * Regla: Dividir ambos lados por el coeficiente.
  * Aplica en ecuaciones de la forma: kx = C → x = C/k
- * 
+ *
  * Emite siempre la fracción sin simplificar (C/k).
  * La simplificación queda a cargo de SimplifyConstantsRule en el siguiente paso.
  */
@@ -30,7 +30,8 @@ export class DivideBothSidesRule implements Rule {
 	}
 
 	apply(expr: Expr): RuleResult {
-		if (expr.type !== 'Equation') return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
+		if (expr.type !== 'Equation')
+			return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
 
 		const coef = extractLinearCoef(expr.left)!;
 
@@ -44,7 +45,11 @@ export class DivideBothSidesRule implements Rule {
 
 		// Derecha: emitir siempre como Divide para que el siguiente paso pueda simplificar
 		let newRight: Expr;
-		if (expr.right.type === 'Number' && Number.isInteger(expr.right.value) && Number.isInteger(coef)) {
+		if (
+			expr.right.type === 'Number' &&
+			Number.isInteger(expr.right.value) &&
+			Number.isInteger(coef)
+		) {
 			const num = expr.right.value;
 			const den = coef;
 			if (num % den === 0) {
@@ -53,7 +58,11 @@ export class DivideBothSidesRule implements Rule {
 			} else {
 				// Fracción irreducible o reducible: dejar SIN simplificar
 				// SimplifyConstantsRule la reducirá por MCD en el siguiente paso
-				newRight = { type: 'Divide', left: { type: 'Number', value: num }, right: { type: 'Number', value: den } };
+				newRight = {
+					type: 'Divide',
+					left: { type: 'Number', value: num },
+					right: { type: 'Number', value: den }
+				};
 			}
 		} else if (expr.right.type === 'Number') {
 			const result = expr.right.value / coef;

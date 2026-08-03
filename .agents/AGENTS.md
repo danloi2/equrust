@@ -13,6 +13,7 @@ Ejecuta 100 % en el navegador. Sin backend.
 La prioridad no es obtener la respuesta. La prioridad es enseñar matemáticas.
 
 Cada transformación debe ser:
+
 - Independiente — una regla, un paso
 - Verificable — antes y después muestran la transformación concreta
 - Explicable — title + explanation + concept
@@ -22,14 +23,14 @@ Cada transformación debe ser:
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| Framework | SvelteKit 5 (Runes mode) |
-| Lenguaje | TypeScript estricto (sin JS) |
-| Estilos | TailwindCSS |
-| Matemáticas | KaTeX (importado desde npm, no CDN) |
-| Tests | Vitest |
-| Gestor de paquetes | pnpm |
+| Capa               | Tecnología                          |
+| ------------------ | ----------------------------------- |
+| Framework          | SvelteKit 5 (Runes mode)            |
+| Lenguaje           | TypeScript estricto (sin JS)        |
+| Estilos            | TailwindCSS                         |
+| Matemáticas        | KaTeX (importado desde npm, no CDN) |
+| Tests              | Vitest                              |
+| Gestor de paquetes | pnpm                                |
 
 ---
 
@@ -69,14 +70,14 @@ Tipos discriminados, inmutables:
 
 ```ts
 type Expr =
-  | NumberNode        // { type: 'Number', value: number }
-  | VariableNode      // { type: 'Variable', name: string }
-  | AddNode           // { type: 'Add', left, right }
-  | MultiplyNode      // { type: 'Multiply', left, right }
-  | DivideNode        // { type: 'Divide', left, right }
-  | PowerNode         // { type: 'Power', base, exponent }
-  | EquationNode      // { type: 'Equation', left, right }
-  | ParenthesisNode   // { type: 'Parenthesis', inner }
+	| NumberNode // { type: 'Number', value: number }
+	| VariableNode // { type: 'Variable', name: string }
+	| AddNode // { type: 'Add', left, right }
+	| MultiplyNode // { type: 'Multiply', left, right }
+	| DivideNode // { type: 'Divide', left, right }
+	| PowerNode // { type: 'Power', base, exponent }
+	| EquationNode // { type: 'Equation', left, right }
+	| ParenthesisNode; // { type: 'Parenthesis', inner }
 ```
 
 **La resta `a - b` se representa como `Add(a, Multiply(-1, b))`.**
@@ -91,13 +92,13 @@ Cada paso devuelve:
 
 ```ts
 interface RuleResult {
-  before: Expr         // expresión/ecuación antes
-  after: Expr          // expresión/ecuación después
-  title: string        // nombre corto de la regla (igual que en Rust)
-  explanation: string  // frase pedagógica
-  concept: string      // concepto matemático referenciado
-  difficulty: number   // 1-10
-  solutions?: readonly [] | readonly [number] | readonly [number, number]
+	before: Expr; // expresión/ecuación antes
+	after: Expr; // expresión/ecuación después
+	title: string; // nombre corto de la regla (igual que en Rust)
+	explanation: string; // frase pedagógica
+	concept: string; // concepto matemático referenciado
+	difficulty: number; // 1-10
+	solutions?: readonly [] | readonly [number] | readonly [number, number];
 }
 ```
 
@@ -107,17 +108,17 @@ El `before` y `after` se convierten a LaTeX en la UI para mostrar la transformac
 
 ## Reglas (orden de prioridad)
 
-| Prioridad | Regla | Descripción |
-|---|---|---|
-| 1 | `SimplifySignsRule` | `(-1)*(-1)→1`, `(-1)*n→-n` |
-| 2 | `SimplifyConstantsRule` | Operaciones aritméticas puras |
-| 3 | `SimplifyParenthesisRule` | Elimina `(atom)` o `(no-suma)` |
-| 4 | `DistributiveRule` | `a*(b+c)→ab+ac` incluyendo Parenthesis |
-| 5 | `CombineLikeTermsRule` | `2x+3x→5x` |
-| 6 | `QuadraticFormulaRule` | Bhaskara antes de mover términos |
-| 7 | `MoveTermsRule` | Transponer términos en ecuaciones |
-| 8 | `DivideBothSidesRule` | Despejar dividiendo |
-| 9 | `MultiplyBothSidesRule` | `x/n=k → x=kn` |
+| Prioridad | Regla                     | Descripción                            |
+| --------- | ------------------------- | -------------------------------------- |
+| 1         | `SimplifySignsRule`       | `(-1)*(-1)→1`, `(-1)*n→-n`             |
+| 2         | `SimplifyConstantsRule`   | Operaciones aritméticas puras          |
+| 3         | `SimplifyParenthesisRule` | Elimina `(atom)` o `(no-suma)`         |
+| 4         | `DistributiveRule`        | `a*(b+c)→ab+ac` incluyendo Parenthesis |
+| 5         | `CombineLikeTermsRule`    | `2x+3x→5x`                             |
+| 6         | `QuadraticFormulaRule`    | Bhaskara antes de mover términos       |
+| 7         | `MoveTermsRule`           | Transponer términos en ecuaciones      |
+| 8         | `DivideBothSidesRule`     | Despejar dividiendo                    |
+| 9         | `MultiplyBothSidesRule`   | `x/n=k → x=kn`                         |
 
 El solver **nunca hace matemáticas directamente**. Solo busca la regla que aplica, la aplica, guarda el paso, y repite.
 

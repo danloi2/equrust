@@ -23,11 +23,7 @@ export class NoSolutionRule implements Rule {
 		if (expr.type !== 'Equation') return false;
 		const { left, right } = expr;
 		// Ambos lados deben ser constantes numéricas con valores distintos
-		return (
-			left.type === 'Number' &&
-			right.type === 'Number' &&
-			left.value !== right.value
-		);
+		return left.type === 'Number' && right.type === 'Number' && left.value !== right.value;
 	}
 
 	apply(expr: Expr): RuleResult {
@@ -54,10 +50,20 @@ export class NoSolutionRule implements Rule {
 				`Esto significa que no existe ningún valor de la variable que satisfaga la ecuación original. ` +
 				`El conjunto solución es vacío.`,
 			explanationBlocks: [
-				{ type: 'text', content: 'La ecuación se ha reducido a una igualdad entre dos constantes distintas:' },
+				{
+					type: 'text',
+					content: 'La ecuación se ha reducido a una igualdad entre dos constantes distintas:'
+				},
 				{ type: 'math', content: `${lhsLatex} = ${rhsLatex}` },
-				{ type: 'text', content: 'Esta afirmación es siempre falsa, independientemente del valor de x.' },
-				{ type: 'text', content: 'Conclusión: la ecuación no tiene solución. El conjunto solución es el conjunto vacío.' },
+				{
+					type: 'text',
+					content: 'Esta afirmación es siempre falsa, independientemente del valor de x.'
+				},
+				{
+					type: 'text',
+					content:
+						'Conclusión: la ecuación no tiene solución. El conjunto solución es el conjunto vacío.'
+				},
 				{ type: 'math', content: 'S = \\emptyset' }
 			],
 			concept: 'Ecuación inconsistente — conjunto solución vacío',

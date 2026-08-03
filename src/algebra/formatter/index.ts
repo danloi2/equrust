@@ -23,8 +23,10 @@ export function formatToLatex(expr: Expr): string {
 			// Add(a, Multiply(neg, b))  →  a - |neg| * b
 			if (right.type === 'Multiply' && right.left.type === 'Number' && right.left.value < 0) {
 				const inner = right.right;
-				const innerStr = needsParens(inner) ? `\\left(${formatToLatex(inner)}\\right)` : formatToLatex(inner);
-				
+				const innerStr = needsParens(inner)
+					? `\\left(${formatToLatex(inner)}\\right)`
+					: formatToLatex(inner);
+
 				if (right.left.value === -1) {
 					return `${formatToLatex(left)} - ${innerStr}`;
 				} else {
@@ -45,7 +47,9 @@ export function formatToLatex(expr: Expr): string {
 
 			// -1 * expr  →  -expr
 			if (left.type === 'Number' && left.value === -1) {
-				const rightStr = needsParens(right) ? `\\left(${formatToLatex(right)}\\right)` : formatToLatex(right);
+				const rightStr = needsParens(right)
+					? `\\left(${formatToLatex(right)}\\right)`
+					: formatToLatex(right);
 				return `-${rightStr}`;
 			}
 			// número * variable  →  2x  (sin operador)
@@ -57,16 +61,16 @@ export function formatToLatex(expr: Expr): string {
 				return `${formatToLatex(left)}\\left(${formatToLatex(right)}\\right)`;
 			}
 			// número * potencia de variable  →  2x²  (sin operador)
-			if (
-				left.type === 'Number' &&
-				right.type === 'Power' &&
-				right.base.type === 'Variable'
-			) {
+			if (left.type === 'Number' && right.type === 'Power' && right.base.type === 'Variable') {
 				return `${formatToLatex(left)}${formatToLatex(right)}`;
 			}
 			// General con paréntesis si es necesario
-			const leftStr = needsParens(left) ? `\\left(${formatToLatex(left)}\\right)` : formatToLatex(left);
-			const rightStr = needsParens(right) ? `\\left(${formatToLatex(right)}\\right)` : formatToLatex(right);
+			const leftStr = needsParens(left)
+				? `\\left(${formatToLatex(left)}\\right)`
+				: formatToLatex(left);
+			const rightStr = needsParens(right)
+				? `\\left(${formatToLatex(right)}\\right)`
+				: formatToLatex(right);
 			return `${leftStr} \\cdot ${rightStr}`;
 		}
 
@@ -92,7 +96,6 @@ export function formatToLatex(expr: Expr): string {
 			return `${formatToLatex(expr.base)}^{${formatToLatex(expr.exponent)}}`;
 		}
 
-
 		case 'Equation':
 			return `${formatToLatex(expr.left)} = ${formatToLatex(expr.right)}`;
 
@@ -103,6 +106,6 @@ export function formatToLatex(expr: Expr): string {
 			return `\\sqrt{${formatToLatex(expr.inner)}}`;
 
 		default:
-			throw new Error(`Tipo de nodo no soportado: ${(expr as any).type}`);
+			throw new Error(`Tipo de nodo no soportado: ${(expr as { type: string }).type}`);
 	}
 }

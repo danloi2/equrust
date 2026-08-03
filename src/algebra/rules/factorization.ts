@@ -46,8 +46,14 @@ function getIntegerFactors(a: number, b: number, c: number): FactorData | null {
 	let den2 = rawDen / g2;
 
 	// Mantener denominadores positivos
-	if (den1 < 0) { num1 = -num1; den1 = -den1; }
-	if (den2 < 0) { num2 = -num2; den2 = -den2; }
+	if (den1 < 0) {
+		num1 = -num1;
+		den1 = -den1;
+	}
+	if (den2 < 0) {
+		num2 = -num2;
+		den2 = -den2;
+	}
 
 	// Verificación: el producto de denominadores debe igualar |a|
 	// para garantizar factores con coeficientes enteros
@@ -129,8 +135,7 @@ export class FactorizationRule implements Rule {
 
 		// Bloques de explicación pedagógicos
 		const coefsStr = `a = ${a}, \\quad b = ${b}, \\quad c = ${c}`;
-		const discCalcStr =
-			`\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot ${a} \\cdot ${c} = ${discriminant}`;
+		const discCalcStr = `\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot ${a} \\cdot ${c} = ${discriminant}`;
 
 		// Descripción compacta del método de factorización
 		const methodDesc =
@@ -143,7 +148,7 @@ export class FactorizationRule implements Rule {
 			after: {
 				type: 'Equation',
 				left: { type: 'Variable', name: varName },
-				right: x1Expr,
+				right: x1Expr
 			},
 			title: 'Factorización — Producto nulo',
 			explanation:
@@ -152,14 +157,16 @@ export class FactorizationRule implements Rule {
 			explanationBlocks: [
 				{ type: 'text', content: 'Identificamos los coeficientes de la ecuación cuadrática:' },
 				{ type: 'math', content: coefsStr },
-				{ type: 'text', content: 'Calculamos el discriminante para comprobar si admite factorización entera:' },
+				{
+					type: 'text',
+					content: 'Calculamos el discriminante para comprobar si admite factorización entera:'
+				},
 				{ type: 'math', content: discCalcStr },
 				{ type: 'text', content: methodDesc },
 				{ type: 'math', content: factoredFormLatex },
 				{
 					type: 'text',
-					content:
-						'Propiedad del producto nulo: si A \\cdot B = 0, entonces A = 0 o B = 0:'
+					content: 'Propiedad del producto nulo: si A \\cdot B = 0, entonces A = 0 o B = 0:'
 				},
 				{
 					type: 'math',

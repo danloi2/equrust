@@ -8,21 +8,17 @@
 		error = null
 	} = $props<{ latex?: string; displayMode?: boolean; error?: string | null }>();
 
-	let container: HTMLDivElement | undefined = $state();
-
-	$effect(() => {
-		if (!container) return;
-		container.innerHTML = '';
-		if (latex && !error) {
-			try {
-				katex.render(latex, container, {
-					displayMode,
-					throwOnError: false,
-					strict: false
-				});
-			} catch (err) {
-				console.error('KaTeX Error:', err);
-			}
+	let html = $derived.by(() => {
+		if (!latex || error) return '';
+		try {
+			return katex.renderToString(latex, {
+				displayMode,
+				throwOnError: false,
+				strict: false
+			});
+		} catch (err) {
+			console.error('KaTeX Error:', err);
+			return '';
 		}
 	});
 </script>
@@ -33,7 +29,8 @@
 	{:else if !latex}
 		<span class="katex-placeholder">—</span>
 	{:else}
-		<div bind:this={container}></div>
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+		{@html html}
 	{/if}
 </div>
 

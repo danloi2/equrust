@@ -71,4 +71,3 @@ describe('Lexer', () => {
 		expect(() => tokenize('2x & 3')).toThrow('Caracter inesperado en la posición 3: &');
 	});
 });
-

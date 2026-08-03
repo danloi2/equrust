@@ -31,7 +31,8 @@ export class ExpandPowerRule implements Rule {
 	private _isExpandable(node: Expr): boolean {
 		if (node.type !== 'Power') return false;
 		const { base, exponent } = node;
-		if (exponent.type !== 'Number' || !Number.isInteger(exponent.value) || exponent.value < 2) return false;
+		if (exponent.type !== 'Number' || !Number.isInteger(exponent.value) || exponent.value < 2)
+			return false;
 		// La base no debe ser un átomo puro (esos los simplifica SimplifyConstants)
 		if (base.type === 'Number') return false;
 		if (base.type === 'Variable') return false;
@@ -108,13 +109,25 @@ export class ExpandPowerRule implements Rule {
 				if (extA.term.type === 'Number' && extB.term.type === 'Number') {
 					twoAB = { type: 'Number', value: total2abCoef * extA.term.value * extB.term.value };
 				} else if (extB.term.type === 'Number') {
-					twoAB = { type: 'Multiply', left: { type: 'Number', value: total2abCoef * extB.term.value }, right: extA.term };
+					twoAB = {
+						type: 'Multiply',
+						left: { type: 'Number', value: total2abCoef * extB.term.value },
+						right: extA.term
+					};
 				} else if (extA.term.type === 'Number') {
-					twoAB = { type: 'Multiply', left: { type: 'Number', value: total2abCoef * extA.term.value }, right: extB.term };
+					twoAB = {
+						type: 'Multiply',
+						left: { type: 'Number', value: total2abCoef * extA.term.value },
+						right: extB.term
+					};
 				} else {
 					twoAB = {
 						type: 'Multiply',
-						left: { type: 'Multiply', left: { type: 'Number', value: total2abCoef }, right: extA.term },
+						left: {
+							type: 'Multiply',
+							left: { type: 'Number', value: total2abCoef },
+							right: extA.term
+						},
 						right: extB.term
 					};
 				}
@@ -129,9 +142,7 @@ export class ExpandPowerRule implements Rule {
 			// Caso general: (expr)^n → (expr) * (expr) * ... n veces
 			applied = true;
 			const wrapped: Expr =
-				base.type === 'Parenthesis'
-					? base
-					: { type: 'Parenthesis', inner: base };
+				base.type === 'Parenthesis' ? base : { type: 'Parenthesis', inner: base };
 
 			let result: Expr = wrapped;
 			for (let i = 1; i < n; i++) {
@@ -145,12 +156,11 @@ export class ExpandPowerRule implements Rule {
 			before: expr,
 			after,
 			title: 'Expandir potencia como producto',
-			explanation:
-				inner
-					? `Aplicamos la identidad notable: (a + b)² = a² + 2ab + b². ` +
-					  `Expandimos la expresión al cuadrado sin necesidad de multiplicar manualmente.`
-					: `Una potencia es la multiplicación de la base por sí misma tantas veces como indica el exponente. ` +
-					  `Reescribimos la potencia como un producto para poder aplicar la propiedad distributiva.`,
+			explanation: inner
+				? `Aplicamos la identidad notable: (a + b)² = a² + 2ab + b². ` +
+					`Expandimos la expresión al cuadrado sin necesidad de multiplicar manualmente.`
+				: `Una potencia es la multiplicación de la base por sí misma tantas veces como indica el exponente. ` +
+					`Reescribimos la potencia como un producto para poder aplicar la propiedad distributiva.`,
 			concept: 'Identidad notable — cuadrado del binomio',
 			difficulty: 3
 		};
@@ -164,8 +174,11 @@ export class ExpandPowerRule implements Rule {
 				node.exponent.type === 'Number' &&
 				node.exponent.value === 2 &&
 				this._unwrap(node.base).type === 'Add'
-			) return { type: 'Number', value: 1 } as Expr;
+			)
+				return { type: 'Number', value: 1 } as Expr;
 			return null;
-		}) !== expr ? 'binomial' : '';
+		}) !== expr
+			? 'binomial'
+			: '';
 	}
 }
