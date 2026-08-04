@@ -94,8 +94,12 @@ src/algebra/
 # Instalar dependencias
 pnpm install
 
-# Iniciar servidor de desarrollo
+# Iniciar servidor de desarrollo (con HMR)
 pnpm dev
+
+# Verificar tipos, compilar y servir en secuencia
+pnpm start     # (check -> build -> preview)
+pnpm verify    # (check -> build -> dev)
 
 # Ejecutar la suite de tests unitarios (Vitest)
 pnpm test
@@ -105,7 +109,19 @@ pnpm check
 
 # Compilar para producción (sitio estático en /build)
 pnpm build
+
+# Previsualizar la build de producción compilada
+pnpm preview
 ```
+
+### 🔍 Diferencia entre `pnpm dev` y `pnpm preview`
+
+| Característica | `pnpm dev` | `pnpm preview` |
+|---|---|---|
+| **Propósito** | Para **programar / desarrollar**. | Para **probar la build de producción**. |
+| **Hot Reload (HMR)** | **Sí**. Cualquier cambio en el código se actualiza al instante en el navegador. | **No**. Sirve los archivos estáticos ya generados en la carpeta `build/`. |
+| **Compilación** | Compila al vuelo en memoria los archivos según se solicitan. | Requiere haber ejecutado antes `pnpm build`. |
+| **Optimización** | Código sin minificar para facilitar la depuración. | Código 100 % minificado y optimizado idéntico al despliegue final. |
 
 ---
 
