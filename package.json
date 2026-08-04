@@ -41,6 +41,7 @@
 	"dependencies": {
 		"@lucide/svelte": "^1.28.0",
 		"@types/katex": "^0.16.8",
+		"jsxgraph": "^1.13.1",
 		"katex": "^0.18.1"
 	}
 }

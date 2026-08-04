@@ -35,11 +35,13 @@
 					</div>
 				</div>
 			{:else if step.solutions.length === 0}
-				<!-- No solution -->
-				<div class="step-no-solution">
-					<span class="icon">∅</span>
-					<span class="label">Sin solución en ℝ</span>
-					<div class="notranslate" translate="no">
+				<!-- No solution: standard transform row before ⟶ S = \emptyset -->
+				<div class="step-transform notranslate" translate="no">
+					<div class="before">
+						<MathExpression latex={formatToLatex(step.before)} displayMode={false} />
+					</div>
+					<div class="arrow">⟶</div>
+					<div class="after">
 						<MathExpression latex="S = \emptyset" displayMode={false} />
 					</div>
 				</div>

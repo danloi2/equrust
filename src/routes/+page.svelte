@@ -3,18 +3,32 @@
 	import { tokenize } from '../algebra/lexer';
 	import { Solver } from '../algebra/solver';
 	import { formatToLatex } from '../algebra/formatter';
-	import type { RuleResult } from '../algebra/types';
+	import { evalAST } from '../algebra/utils/eval';
+	import type { Expr, RuleResult } from '../algebra/types';
 	import StepViewer from '../components/StepViewer.svelte';
 	import MathExpression from '../components/MathExpression.svelte';
 	import MathToolbar from '../components/MathToolbar.svelte';
+	import GraphViewer from '../components/GraphViewer.svelte';
 
-	import { Sigma, Sparkles, AlertCircle, BookOpen, FlaskConical, Keyboard } from '@lucide/svelte';
+	import {
+		Sigma,
+		Sparkles,
+		AlertCircle,
+		BookOpen,
+		FlaskConical,
+		Keyboard,
+		CheckCircle2,
+		Activity,
+		ListOrdered
+	} from '@lucide/svelte';
 	import pkg from '../../package.json';
 
 	let expression = $state('');
+	let viewMode = $state<'steps' | 'result' | 'graph'>('steps');
 	const solver = new Solver();
 
 	let data = $state<{
+		ast: Expr;
 		input_latex: string;
 		steps: RuleResult[];
 		result_latex: string;
@@ -45,8 +59,11 @@
 		errorMsg = '';
 	}
 
-	function handleSubmit(e?: Event) {
+	function handleSubmit(targetMode?: 'steps' | 'result' | 'graph', e?: Event) {
 		e?.preventDefault();
+		if (targetMode) {
+			viewMode = targetMode;
+		}
 		const trimmed = expression.trim();
 		if (!trimmed) return;
 
@@ -81,12 +98,34 @@
 				}
 			}
 
+			// Extraer solución para ecuaciones lineales de primer grado (ej. x = C)
+			if (solutions.length === 0 && !is_no_solution && finalExpr.type === 'Equation') {
+				if (finalExpr.left.type === 'Variable') {
+					const val = evalAST(finalExpr.right, 0);
+					if (typeof val === 'number' && !isNaN(val) && isFinite(val)) {
+						solutions = [val];
+						solutions_latex = [formatToLatex(finalExpr.right)];
+					}
+				} else if (finalExpr.right.type === 'Variable') {
+					const val = evalAST(finalExpr.left, 0);
+					if (typeof val === 'number' && !isNaN(val) && isFinite(val)) {
+						solutions = [val];
+						solutions_latex = [formatToLatex(finalExpr.left)];
+					}
+				} else if (finalExpr.left.type === 'Number' && finalExpr.right.type === 'Number') {
+					if (finalExpr.left.value !== finalExpr.right.value) {
+						is_no_solution = true;
+					}
+				}
+			}
+
 			// Detectar si la solución es irracional (contiene radicales \sqrt)
 			if (solutions_latex.some((s) => s.includes('\\sqrt')) || result_latex.includes('\\sqrt')) {
 				is_irrational = true;
 			}
 
 			data = {
+				ast,
 				input_latex,
 				steps,
 				result_latex,
@@ -104,13 +143,13 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter') handleSubmit();
+		if (e.key === 'Enter') handleSubmit(viewMode);
 	}
 
 	function handleExample(ex: string) {
 		expression = ex;
 		reset();
-		setTimeout(() => handleSubmit(), 50);
+		setTimeout(() => handleSubmit(viewMode), 50);
 	}
 
 	function getLivePreviewLatex(raw: string): string {
@@ -293,7 +332,7 @@
 					{isKeyboardOpen ? 'Ocultar teclado' : 'Teclado táctil'}
 				</button>
 			</div>
-			<form onsubmit={handleSubmit} style="display:flex;flex-direction:column;gap:12px;">
+			<form onsubmit={(e) => handleSubmit('steps', e)} style="display:flex;flex-direction:column;gap:12px;">
 				<div class="input-card">
 					<input
 						id="expression-input"
@@ -314,14 +353,47 @@
 						onInsert={handleInsertSymbol}
 						onBackspace={handleBackspace}
 						onClear={handleClear}
-						onSolve={() => handleSubmit()}
+						onSolve={() => handleSubmit('steps')}
 					/>
 				{/if}
 
-				<button id="solve-button" type="submit" class="solve-btn" disabled={!expression.trim()}>
-					<Sparkles size={15} />
-					Resolver paso a paso
-				</button>
+				<div class="action-buttons-stack">
+					<!-- Button 1: Resolver (Solo resultado) -->
+					<button
+						id="solve-direct-button"
+						type="button"
+						class="btn-solve-direct"
+						disabled={!expression.trim()}
+						onclick={() => handleSubmit('result')}
+					>
+						<CheckCircle2 size={15} />
+						Resolver
+					</button>
+
+					<!-- Button 2: Resolver paso a paso -->
+					<button
+						id="solve-button"
+						type="submit"
+						class="solve-btn"
+						disabled={!expression.trim()}
+						onclick={() => handleSubmit('steps')}
+					>
+						<Sparkles size={15} />
+						Resolver paso a paso
+					</button>
+
+					<!-- Button 3: Representar gráficamente -->
+					<button
+						id="graph-button"
+						type="button"
+						class="btn-graph"
+						disabled={!expression.trim()}
+						onclick={() => handleSubmit('graph')}
+					>
+						<Activity size={15} />
+						Representar gráficamente
+					</button>
+				</div>
 			</form>
 		</div>
 
@@ -366,6 +438,39 @@
 		{/if}
 
 		{#if data}
+			<!-- View Mode Tabs Bar -->
+			<div class="view-tabs anim-fade-up">
+				<button
+					type="button"
+					class="view-tab-btn"
+					class:active={viewMode === 'result'}
+					onclick={() => (viewMode = 'result')}
+				>
+					<CheckCircle2 size={14} />
+					Resultado
+				</button>
+
+				<button
+					type="button"
+					class="view-tab-btn"
+					class:active={viewMode === 'steps'}
+					onclick={() => (viewMode = 'steps')}
+				>
+					<ListOrdered size={14} />
+					Paso a paso ({data.steps.length})
+				</button>
+
+				<button
+					type="button"
+					class="view-tab-btn"
+					class:active={viewMode === 'graph'}
+					onclick={() => (viewMode = 'graph')}
+				>
+					<Activity size={14} />
+					Gráfica
+				</button>
+			</div>
+
 			<!-- Expression input display -->
 			<div class="expr-panel anim-fade-up" style="position:relative;">
 				<div class="section-label" style="position:absolute;top:14px;left:20px;">
@@ -377,7 +482,7 @@
 			</div>
 
 			<!-- Steps -->
-			{#if hasSteps}
+			{#if viewMode === 'steps' && hasSteps}
 				<div class="steps-section">
 					<div class="steps-header">
 						<div class="steps-dot"></div>
@@ -389,6 +494,15 @@
 					</div>
 					<StepViewer steps={data.steps} />
 				</div>
+			{/if}
+
+			<!-- Graph Viewer -->
+			{#if viewMode === 'graph'}
+				<GraphViewer
+					ast={data.ast}
+					solutions={data.solutions}
+					solutionsLatex={data.solutions_latex}
+				/>
 			{/if}
 
 			<!-- Result panel -->

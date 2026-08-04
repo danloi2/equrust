@@ -14,6 +14,9 @@ importers:
       '@types/katex':
         specifier: ^0.16.8
         version: 0.16.8
+      jsxgraph:
+        specifier: ^1.13.1
+        version: 1.13.1
       katex:
         specifier: ^0.18.1
         version: 0.18.1
@@ -933,6 +936,10 @@ packages:
 
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
+
+  jsxgraph@1.13.1:
+    resolution: {integrity: sha512-kY22yaHpHew/HmelkveA1LX+uye5Uc4QF0UCBEpW8HCJ9kr0pSQ33ombYRkWd75YFuCFzRtDNzm5U2Vte01ezQ==}
+    engines: {node: '>=20.19.0'}
 
   katex@0.18.1:
     resolution: {integrity: sha512-Td8GCYSxDAoMhHOlKmCFMJ/hz5qlAAb71n66Dryw9nfCVfumLo7nhuotbvKom/XPADmrYC3O5QR71EPq4DarJQ==}
@@ -2256,6 +2263,8 @@ snapshots:
   json-schema-traverse@0.4.1: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
+
+  jsxgraph@1.13.1: {}
 
   katex@0.18.1:
     dependencies:
