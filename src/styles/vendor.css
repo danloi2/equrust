@@ -1,0 +1,56 @@
+/* ─── Custom scrollbar ───────────────────────────────────── */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: rgba(139, 92, 246, 0.35);
+	border-radius: 3px;
+}
+
+/* ─── JSXGraph base styles ───────────────────────────────── */
+.jxgbox {
+	position: relative;
+	overflow: hidden;
+	background-color: #090914;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+	margin: 0;
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.jxgbox svg text {
+	cursor: default;
+	user-select: none;
+}
+.JXGtext {
+	font-family: 'JetBrains Mono', Courier, monospace;
+	background-color: transparent;
+	padding: 0;
+	margin: 0;
+}
+.JXGinfobox {
+	border-style: none;
+	border-width: 0;
+	border-color: black;
+}
+.jxgbox :focus {
+	outline-width: 0.5px;
+	outline-style: dotted;
+}
+.JXG_navigation {
+	position: absolute;
+	right: 5px;
+	bottom: 5px;
+	z-index: 100;
+	background-color: transparent;
+	padding: 2px;
+	font-size: 14px;
+	cursor: pointer;
+}
+.JXG_navigation_button {
+	color: #666;
+}

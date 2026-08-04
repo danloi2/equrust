@@ -1,0 +1,109 @@
+/* ─── Result final panel ─────────────────────────────────── */
+.result-panel {
+	border-radius: var(--radius);
+	border: 1px solid rgba(139, 92, 246, 0.3);
+	overflow: hidden;
+}
+
+.result-panel-header {
+	background: linear-gradient(90deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.06));
+	padding: 14px 24px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+}
+.result-panel-header .dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--accent);
+	box-shadow: 0 0 10px var(--accent-glow);
+}
+.result-panel-header .title {
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--accent);
+}
+
+.result-panel-body {
+	padding: 32px 24px;
+	text-align: center;
+	background: rgba(139, 92, 246, 0.04);
+}
+
+/* ─── Solutions grid ─────────────────────────────────────── */
+.solutions-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 12px;
+	margin-top: 12px;
+}
+.solution-box {
+	background: var(--surface);
+	border: 1px solid rgba(16, 185, 129, 0.3);
+	border-radius: var(--radius-sm);
+	padding: 16px 12px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+}
+.solution-box .sol-label {
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--green);
+}
+.solution-box.double-root {
+	border-color: rgba(245, 158, 11, 0.3);
+}
+.solution-box.double-root .sol-label {
+	color: var(--amber);
+}
+.solution-box.irrational {
+	border-color: rgba(139, 92, 246, 0.4);
+	background: rgba(139, 92, 246, 0.05);
+}
+.solution-box.irrational .sol-label {
+	color: #a78bfa;
+}
+
+/* ─── Irrational badge ───────────────────────────────────── */
+.irrational-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 14px;
+	background: rgba(139, 92, 246, 0.12);
+	border: 1px solid rgba(139, 92, 246, 0.35);
+	border-radius: 100px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #c4b5fd;
+	margin-bottom: 14px;
+}
+
+/* ─── No real solution ───────────────────────────────────── */
+.no-real-sol {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	padding: 12px 0;
+}
+.no-real-sol .badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 18px;
+	background: rgba(244, 63, 94, 0.1);
+	border: 1px solid rgba(244, 63, 94, 0.3);
+	border-radius: 100px;
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: #fb7185;
+}

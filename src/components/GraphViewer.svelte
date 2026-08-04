@@ -34,12 +34,10 @@
 
 		const minX = -maxAbsVal;
 		const maxX = maxAbsVal;
-		const minY = -maxAbsVal;
-		const maxY = maxAbsVal;
 
 		try {
 			board = JXG.JSXGraph.initBoard(container, {
-				boundingbox: [minX, maxY, maxX, minY],
+				boundingbox: [minX, maxAbsVal, maxX, -maxAbsVal],
 				axis: false,
 				showCopyright: false,
 				showNavigation: false,
@@ -84,58 +82,126 @@
 				}
 			});
 
-			// Función a graficar: f(x)
-			const fn = (x: number) => {
-				const val = evalAST(ast, x);
-				return isNaN(val) || !isFinite(val) ? null : val;
-			};
+			if (ast.type === 'Equation') {
+				// ── Enfoque f(x) vs g(x) ──────────────────────────────────────
+				// f(x) = lado izquierdo de la ecuación (violeta)
+				// g(x) = lado derecho de la ecuación (cian)
+				// Las intersecciones son las soluciones
 
-			// Crear la curva de la función f(x)
-			board.create('functiongraph', [fn, minX, maxX], {
-				strokeColor: '#8b5cf6',
-				strokeWidth: 3.5,
-				highlight: false
-			});
+				const leftExpr = ast.left;
+				const rightExpr = ast.right;
 
-			// Graficar las raíces / soluciones reales (puntos de corte con el eje x)
-			validSols.forEach((sol: number, idx: number) => {
-				const latexLabel = solutionsLatex[idx] ?? (Number.isInteger(sol) ? sol.toString() : sol.toFixed(2));
-				board.create('point', [sol, 0], {
-					name: `x_${idx + 1} = ${latexLabel}`,
-					size: 5,
-					fillColor: '#10b981',
-					strokeColor: '#ffffff',
-					strokeWidth: 2,
-					fixed: true,
-					label: {
-						fontSize: 12,
-						offset: [10, 15],
-						color: '#34d399'
+				const fFn = (x: number) => {
+					const val = evalAST(leftExpr, x);
+					return isNaN(val) || !isFinite(val) ? null : val;
+				};
+
+				const gFn = (x: number) => {
+					const val = evalAST(rightExpr, x);
+					return isNaN(val) || !isFinite(val) ? null : val;
+				};
+
+				// Ajustar bounding box para que los puntos de intersección sean visibles
+				if (validSols.length > 0) {
+					const yAtSols = validSols.map((s: number) => fFn(s)).filter((y: number | null) => y !== null) as number[];
+					if (yAtSols.length > 0) {
+						const maxAbsY = Math.max(...yAtSols.map(Math.abs));
+						if (maxAbsY > maxAbsVal) {
+							const newRange = Math.ceil(maxAbsY * 1.3);
+							board.setBoundingBox([minX, newRange, maxX, -newRange], true);
+						}
 					}
-				});
-			});
+				}
 
-			// Si la ecuación es cuadrática (ax² + bx + c), marcar también el vértice
-			const targetExpr = ast.type === 'Equation' ? ast.left : ast;
-			const coefs = extractQuadraticCoefs(targetExpr);
-			if (coefs && coefs.a !== 0) {
-				const xv = -coefs.b / (2 * coefs.a);
-				const yv = fn(xv);
-				if (typeof yv === 'number' && !isNaN(yv)) {
-					board.create('point', [xv, yv], {
-						name: `Vértice (${xv.toFixed(1)}, ${yv.toFixed(1)})`,
-						size: 4,
-						fillColor: '#f59e0b',
+				// Curva f(x) — lado izquierdo (violeta)
+				board.create('functiongraph', [fFn, minX, maxX], {
+					strokeColor: '#8b5cf6',
+					strokeWidth: 3,
+					highlight: false
+				});
+
+				// Curva g(x) — lado derecho (cian, discontinua)
+				board.create('functiongraph', [gFn, minX, maxX], {
+					strokeColor: '#06b6d4',
+					strokeWidth: 3,
+					highlight: false,
+					dash: 2
+				});
+
+				// Puntos de intersección (soluciones)
+				validSols.forEach((sol: number, idx: number) => {
+					const yIntersect = fFn(sol) ?? 0;
+					const latexLabel =
+						solutionsLatex[idx] ??
+						(Number.isInteger(sol) ? sol.toString() : sol.toFixed(2));
+					board.create('point', [sol, yIntersect], {
+						name: `x${validSols.length > 1 ? `_${idx + 1}` : ''} = ${latexLabel}`,
+						size: 5,
+						fillColor: '#10b981',
 						strokeColor: '#ffffff',
 						strokeWidth: 2,
 						fixed: true,
 						label: {
-							fontSize: 11,
-							offset: [-30, -18],
-							color: '#fbbf24'
+							fontSize: 12,
+							offset: [10, 12],
+							color: '#34d399'
 						}
 					});
+				});
+
+				// Vértice si la parte izquierda es cuadrática
+				const coefs = extractQuadraticCoefs(leftExpr);
+				if (coefs && coefs.a !== 0) {
+					const xv = -coefs.b / (2 * coefs.a);
+					const yv = fFn(xv);
+					if (typeof yv === 'number' && !isNaN(yv)) {
+						board.create('point', [xv, yv], {
+							name: `Vértice (${xv.toFixed(1)}, ${yv.toFixed(1)})`,
+							size: 4,
+							fillColor: '#f59e0b',
+							strokeColor: '#ffffff',
+							strokeWidth: 2,
+							fixed: true,
+							label: {
+								fontSize: 11,
+								offset: [-30, -18],
+								color: '#fbbf24'
+							}
+						});
+					}
 				}
+			} else {
+				// ── Expresión simple: graficar y = f(x) ──────────────────────
+				const fn = (x: number) => {
+					const val = evalAST(ast, x);
+					return isNaN(val) || !isFinite(val) ? null : val;
+				};
+
+				board.create('functiongraph', [fn, minX, maxX], {
+					strokeColor: '#8b5cf6',
+					strokeWidth: 3,
+					highlight: false
+				});
+
+				// Puntos donde f(x) = 0 (corte con eje x)
+				validSols.forEach((sol: number, idx: number) => {
+					const latexLabel =
+						solutionsLatex[idx] ??
+						(Number.isInteger(sol) ? sol.toString() : sol.toFixed(2));
+					board.create('point', [sol, 0], {
+						name: `x = ${latexLabel}`,
+						size: 5,
+						fillColor: '#10b981',
+						strokeColor: '#ffffff',
+						strokeWidth: 2,
+						fixed: true,
+						label: {
+							fontSize: 12,
+							offset: [10, 12],
+							color: '#34d399'
+						}
+					});
+				});
 			}
 		} catch (err) {
 			console.error('Error inicializando JSXGraph:', err);
@@ -184,14 +250,29 @@
 	<div bind:this={container} class="jxg-board-wrap"></div>
 
 	<div class="graph-legend">
-		<div class="legend-item">
-			<span class="legend-dot" style="background:#8b5cf6;"></span>
-			<span>Función $f(x)$</span>
-		</div>
+		{#if ast && (ast as any).type === 'Equation'}
+			<div class="legend-item">
+				<span class="legend-line solid" style="background:#8b5cf6;"></span>
+				<span>f(x) — lado izquierdo</span>
+			</div>
+			<div class="legend-item">
+				<span class="legend-line dashed" style="border-color:#06b6d4;"></span>
+				<span>g(x) — lado derecho</span>
+			</div>
+		{:else}
+			<div class="legend-item">
+				<span class="legend-dot" style="background:#8b5cf6;"></span>
+				<span>f(x)</span>
+			</div>
+		{/if}
 		{#if solutions.length > 0}
 			<div class="legend-item">
 				<span class="legend-dot" style="background:#10b981;"></span>
-				<span>Raíces (Corte eje $x$)</span>
+				<span
+					>{ast && (ast as any).type === 'Equation'
+						? 'Intersecciones (soluciones)'
+						: 'Raíces'}</span
+				>
 			</div>
 		{/if}
 		<div class="legend-item" style="margin-left:auto;color:var(--text3);font-size:0.75rem;">
@@ -280,5 +361,18 @@
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
+	}
+
+	.legend-line {
+		display: inline-block;
+		width: 20px;
+		height: 3px;
+		border-radius: 2px;
+	}
+
+	.legend-line.dashed {
+		background: transparent;
+		border-top: 3px dashed currentColor;
+		height: 0;
 	}
 </style>
