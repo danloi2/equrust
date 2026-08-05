@@ -54,14 +54,14 @@ export class SquareBothSidesRule implements Rule {
 				{
 					type: 'text',
 					content:
-						'Elevamos al cuadrado ambos lados de la ecuación (al hacerlo, verificaremos las posibles soluciones en la ecuación original al final):'
+						'Como aparecen raíces cuadradas en la ecuación, el dominio exige que los radicandos sean no negativos (≥ 0). Elevamos al cuadrado ambos lados (las posibles soluciones se comprobarán al final en la ecuación original):'
 				},
 				{
 					type: 'math',
 					content: `${formatToLatex(expr)} \\implies ${formatToLatex(after)}`
 				}
 			],
-			concept: 'Ecuaciones irracionales — elevación al cuadrado',
+			concept: 'Ecuaciones irracionales — dominio y elevación al cuadrado',
 			difficulty: 5
 		};
 	}

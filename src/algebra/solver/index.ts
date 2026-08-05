@@ -16,6 +16,7 @@ import { SqrtDomainCheckRule } from '../rules/sqrtDomainCheck';
 import { ExpandPowerRule } from '../rules/expandPower';
 import { ReorderTermsRule } from '../rules/reorderTerms';
 import { formatToLatex } from '../formatter/index';
+import { containsSqrt, verifyRadicalSolutions } from '../utils/eval';
 
 export class Solver {
 	private rules: Rule[];
@@ -82,6 +83,38 @@ export class Solver {
 
 		if (iterations >= maxIterations) {
 			console.warn('Solver: límite máximo de iteraciones alcanzado.');
+		}
+
+		// Si la ecuación original contenía raíces cuadradas y se obtuvieron soluciones, comprobarlas en la ecuación original
+		if (steps.length > 0 && containsSqrt(initialExpr)) {
+			const lastIdx = steps.length - 1;
+			const lastStep = steps[lastIdx];
+			if (lastStep.solutions && lastStep.solutions.length > 0) {
+				const { validSolutions, details } = verifyRadicalSolutions(initialExpr, lastStep.solutions);
+				const existingBlocks = lastStep.explanationBlocks ? [...lastStep.explanationBlocks] : [];
+				existingBlocks.push({
+					type: 'text',
+					content: 'Comprobación de soluciones en la ecuación original (verificación de dominio):'
+				});
+				for (const detail of details) {
+					existingBlocks.push({
+						type: 'math',
+						content: detail.latexText
+					});
+				}
+
+				const updatedSolutions = validSolutions.length === 2
+					? ([validSolutions[0], validSolutions[1]] as const)
+					: validSolutions.length === 1
+						? ([validSolutions[0]] as const)
+						: ([] as const);
+
+				steps[lastIdx] = {
+					...lastStep,
+					solutions: updatedSolutions,
+					explanationBlocks: existingBlocks
+				};
+			}
 		}
 
 		return steps;

@@ -47,3 +47,70 @@ export function evalAST(expr: Expr, xVal: number): number {
 			return NaN;
 	}
 }
+
+export interface VerificationDetail {
+	val: number;
+	isValid: boolean;
+	leftVal: number;
+	rightVal: number;
+	latexText: string;
+}
+
+export function containsSqrt(expr: Expr): boolean {
+	switch (expr.type) {
+		case 'Sqrt':
+			return true;
+		case 'Add':
+		case 'Multiply':
+		case 'Divide':
+		case 'Equation':
+			return containsSqrt(expr.left) || containsSqrt(expr.right);
+		case 'Power':
+			return containsSqrt(expr.base) || containsSqrt(expr.exponent);
+		case 'Parenthesis':
+			return containsSqrt(expr.inner);
+		default:
+			return false;
+	}
+}
+
+export function verifyRadicalSolutions(
+	initialExpr: Expr,
+	solutions: readonly number[]
+): { validSolutions: number[]; details: VerificationDetail[] } {
+	if (initialExpr.type !== 'Equation') {
+		return { validSolutions: [...solutions], details: [] };
+	}
+
+	const validSolutions: number[] = [];
+	const details: VerificationDetail[] = [];
+
+	for (const sol of solutions) {
+		const leftVal = evalAST(initialExpr.left, sol);
+		const rightVal = evalAST(initialExpr.right, sol);
+
+		const isValid =
+			!isNaN(leftVal) &&
+			!isNaN(rightVal) &&
+			Math.abs(leftVal - rightVal) < 1e-5;
+
+		if (isValid) {
+			validSolutions.push(sol);
+		}
+
+		const formatVal = (v: number) =>
+			Number.isInteger(v) ? `${v}` : v.toFixed(2);
+
+		const leftStr = isNaN(leftVal) ? '\\text{indefinido}' : formatVal(leftVal);
+		const rightStr = isNaN(rightVal) ? '\\text{indefinido}' : formatVal(rightVal);
+
+		const symbol = isValid
+			? '\\checkmark \\text{ (Es solución)}'
+			: '\\boldsymbol{\\times} \\text{ (Solución espuria, se descarta)}';
+		const latexText = `\\text{Para } x = ${sol}: \\quad \\text{MIEMBRO IZQ} = ${leftStr}, \\quad \\text{MIEMBRO DER} = ${rightStr} \\quad ${symbol}`;
+
+		details.push({ val: sol, isValid, leftVal, rightVal, latexText });
+	}
+
+	return { validSolutions, details };
+}
