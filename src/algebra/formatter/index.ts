@@ -93,7 +93,15 @@ export function formatToLatex(expr: Expr): string {
 				}
 				return `\\sqrt[${formatToLatex(rootDegree)}]{${formatToLatex(expr.base)}}`;
 			}
-			return `${formatToLatex(expr.base)}^{${formatToLatex(expr.exponent)}}`;
+			const needsBaseParens =
+				expr.base.type === 'Add' ||
+				expr.base.type === 'Multiply' ||
+				expr.base.type === 'Divide' ||
+				(expr.base.type === 'Number' && expr.base.value < 0);
+			const baseStr = needsBaseParens
+				? `\\left(${formatToLatex(expr.base)}\\right)`
+				: formatToLatex(expr.base);
+			return `${baseStr}^{${formatToLatex(expr.exponent)}}`;
 		}
 
 		case 'Equation':

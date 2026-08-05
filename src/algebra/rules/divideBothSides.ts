@@ -2,23 +2,20 @@ import type { Expr, Rule, RuleResult } from '../types/index';
 import { formatToLatex } from '../formatter/index';
 
 /**
- * Extrae el coeficiente de un término lineal en x: 3x → 3, x → 1, -x → -1
+ * Extrae el coeficiente de un término (variable o raíz): 3x → 3, 2\sqrt{x} → 2, x → 1, -x → -1
  */
 function extractLinearCoef(expr: Expr): number | null {
-	if (expr.type === 'Variable') return 1;
+	if (expr.type === 'Variable' || expr.type === 'Sqrt') return 1;
 	if (expr.type === 'Multiply') {
-		if (expr.left.type === 'Number' && expr.right.type === 'Variable') return expr.left.value;
-		if (expr.right.type === 'Number' && expr.left.type === 'Variable') return expr.right.value;
+		if (expr.left.type === 'Number') return expr.left.value;
+		if (expr.right.type === 'Number') return expr.right.value;
 	}
 	return null;
 }
 
 /**
  * Regla: Dividir ambos lados por el coeficiente.
- * Aplica en ecuaciones de la forma: kx = C → x = C/k
- *
- * Emite siempre la fracción sin simplificar (C/k).
- * La simplificación queda a cargo de SimplifyConstantsRule en el siguiente paso.
+ * Aplica en ecuaciones de la forma: kx = C → x = C/k o k\sqrt{x} = kx → \sqrt{x} = x
  */
 export class DivideBothSidesRule implements Rule {
 	readonly name = 'divide_both_sides';
@@ -35,17 +32,29 @@ export class DivideBothSidesRule implements Rule {
 
 		const coef = extractLinearCoef(expr.left)!;
 
-		// Izquierda: la variable sola
+		// Izquierda: el término sin el coeficiente numérico
 		const varNode: Expr =
-			expr.left.type === 'Multiply' && expr.left.right.type === 'Variable'
+			expr.left.type === 'Multiply' && expr.left.left.type === 'Number'
 				? expr.left.right
-				: expr.left.type === 'Multiply' && expr.left.left.type === 'Variable'
+				: expr.left.type === 'Multiply' && expr.left.right.type === 'Number'
 					? expr.left.left
 					: expr.left;
 
-		// Derecha: emitir siempre como Divide para que el siguiente paso pueda simplificar
+		// Derecha: simplificar si el lado derecho también es Multiply con el mismo coeficiente
 		let newRight: Expr;
 		if (
+			expr.right.type === 'Multiply' &&
+			expr.right.left.type === 'Number' &&
+			expr.right.left.value === coef
+		) {
+			newRight = expr.right.right;
+		} else if (
+			expr.right.type === 'Multiply' &&
+			expr.right.right.type === 'Number' &&
+			expr.right.right.value === coef
+		) {
+			newRight = expr.right.left;
+		} else if (
 			expr.right.type === 'Number' &&
 			Number.isInteger(expr.right.value) &&
 			Number.isInteger(coef)
@@ -53,11 +62,8 @@ export class DivideBothSidesRule implements Rule {
 			const num = expr.right.value;
 			const den = coef;
 			if (num % den === 0) {
-				// División exacta: simplificar directamente (no hay fracción que reducir)
 				newRight = { type: 'Number', value: num / den };
 			} else {
-				// Fracción irreducible o reducible: dejar SIN simplificar
-				// SimplifyConstantsRule la reducirá por MCD en el siguiente paso
 				newRight = {
 					type: 'Divide',
 					left: { type: 'Number', value: num },

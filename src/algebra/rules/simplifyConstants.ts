@@ -93,6 +93,14 @@ export class SimplifyConstantsRule implements Rule {
 				node.exponent.type === 'Number'
 			)
 				canApply = true;
+			if (
+				node.type === 'Power' &&
+				node.exponent.type === 'Number' &&
+				node.exponent.value === 2 &&
+				(node.base.type === 'Sqrt' ||
+					(node.base.type === 'Parenthesis' && node.base.inner.type === 'Sqrt'))
+			)
+				canApply = true;
 			return null;
 		});
 		return canApply;
@@ -228,6 +236,16 @@ export class SimplifyConstantsRule implements Rule {
 				const varPow: Expr = { type: 'Power', base: node.base.right, exponent: node.exponent };
 				if (coef === 1) return varPow;
 				return { type: 'Multiply', left: { type: 'Number', value: coef }, right: varPow };
+			}
+			if (
+				node.type === 'Power' &&
+				node.exponent.type === 'Number' &&
+				node.exponent.value === 2 &&
+				(node.base.type === 'Sqrt' ||
+					(node.base.type === 'Parenthesis' && node.base.inner.type === 'Sqrt'))
+			) {
+				applied = true;
+				return node.base.type === 'Sqrt' ? node.base.inner : (node.base.inner as { inner: Expr }).inner;
 			}
 			return null;
 		});

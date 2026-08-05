@@ -242,4 +242,30 @@ describe('Solver', () => {
 		const last = steps[steps.length - 1];
 		expect(last.title).toContain('Bhaskara');
 	});
+
+	it('solves radical equation \\sqrt{x}+1=\\sqrt{3x+1}', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('\\sqrt{x}+1=\\sqrt{3x+1}'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		const last = steps[steps.length - 1];
+		expect(last.title).toMatch(/Factorización|Bhaskara/);
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(0, 6);
+		expect(sols[1]).toBeCloseTo(1, 6);
+	});
+
+	it('solves simple radical equation \\sqrt{x}=2', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('\\sqrt{x}=2'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		expect(steps[0].title).toContain('Elevar al cuadrado');
+		expect(formatToLatex(steps[0].after)).toBe('x = 2^{2}');
+		const last = steps[steps.length - 1];
+		expect(formatToLatex(last.after)).toBe('x = 4');
+	});
 });

@@ -58,6 +58,24 @@ function negateExpr(term: Expr): Expr {
 	return { type: 'Multiply', left: { type: 'Number', value: -1 }, right: term };
 }
 
+function containsSqrt(expr: Expr): boolean {
+	switch (expr.type) {
+		case 'Sqrt':
+			return true;
+		case 'Add':
+		case 'Multiply':
+		case 'Divide':
+		case 'Equation':
+			return containsSqrt(expr.left) || containsSqrt(expr.right);
+		case 'Power':
+			return containsSqrt(expr.base) || containsSqrt(expr.exponent);
+		case 'Parenthesis':
+			return containsSqrt(expr.inner);
+		default:
+			return false;
+	}
+}
+
 /**
  * Regla: Transponer términos en ecuaciones (método pedagógico de dos pasos).
  *
@@ -76,8 +94,21 @@ export class MoveTermsRule implements Rule {
 
 	applies(expr: Expr): boolean {
 		if (expr.type !== 'Equation') return false;
+
+		// Si alguno de los lados es una raíz pura, dejar que SquareBothSidesRule actúe
+		if (expr.left.type === 'Sqrt' || expr.right.type === 'Sqrt') return false;
+
 		const leftTerms = collectTerms(expr.left);
 		const rightTerms = collectTerms(expr.right);
+
+		// Si un lado contiene ÚNICAMENTE raíces y el otro NO contiene raíces, la raíz ya está aislada
+		const leftPureSqrt = leftTerms.every(containsSqrt);
+		const rightNoSqrt = rightTerms.every((t) => !containsSqrt(t));
+		if (leftPureSqrt && rightNoSqrt) return false;
+
+		const rightPureSqrt = rightTerms.every(containsSqrt);
+		const leftNoSqrt = leftTerms.every((t) => !containsSqrt(t));
+		if (rightPureSqrt && leftNoSqrt) return false;
 
 		// Si hay multiplicaciones sin simplificar en cualquier parte del árbol
 		// (ej: x·(-5), 5·(-5), n·(-1·m)), esperar a que SimplifySigns/Constants actúen
@@ -113,11 +144,16 @@ export class MoveTermsRule implements Rule {
 		};
 		if (hasUnsimplifiedNode(expr.left) || hasUnsimplifiedNode(expr.right)) return false;
 
+		// Si el lado izquierdo contiene un término con raíz y otro sin raíz, aislar la raíz
+		const leftHasSqrt = leftTerms.some(containsSqrt);
+		const leftHasNonSqrtVar = leftTerms.some((t) => containsVariable(t) && !containsSqrt(t));
+		if (leftHasSqrt && leftHasNonSqrtVar) return true;
+
 		// Constante en la izquierda junto con variable(s) → mover la constante al derecho
 		const hasConstantLeft = leftTerms.length > 1 && leftTerms.some(isConstant);
 
-		// Variable en la derecha → mover la variable al izquierdo
-		const hasVarRight = rightTerms.some(containsVariable);
+		// Variable en la derecha (excluyendo raíces puras) → mover la variable al izquierdo
+		const hasVarRight = rightTerms.some((t) => containsVariable(t) && !containsSqrt(t));
 
 		// Constante no-cero en la derecha, SOLO si la izquierda tiene cuadrático sin constante
 		const leftHasQuadratic = leftTerms.some(
@@ -146,6 +182,37 @@ export class MoveTermsRule implements Rule {
 
 		const leftTerms = collectTerms(expr.left);
 		const rightTerms = collectTerms(expr.right);
+
+		// 0. Aislar término con raíz: mover variable sin raíz del lado izquierdo al lado derecho
+		const leftHasSqrt = leftTerms.some(containsSqrt);
+		const nonSqrtVarIdx = leftTerms.findIndex((t) => containsVariable(t) && !containsSqrt(t));
+		if (leftHasSqrt && nonSqrtVarIdx !== -1) {
+			const termToMove = leftTerms[nonSqrtVarIdx];
+			const negated = negateExpr(termToMove);
+
+			const remainingLeft = leftTerms.filter((_, i) => i !== nonSqrtVarIdx);
+			const newLeft = buildAdd(remainingLeft);
+			const newRight = buildAdd([...rightTerms, negated]);
+
+			const intermediate: Expr = {
+				type: 'Equation',
+				left: { type: 'Add', left: expr.left, right: negated },
+				right: { type: 'Add', left: expr.right, right: negated }
+			};
+
+			return {
+				before: expr,
+				after: { type: 'Equation', left: newLeft, right: newRight },
+				title: `Restar ${formatToLatex(termToMove)} a ambos lados`,
+				explanation: `Restamos ${formatToLatex(termToMove)} a ambos miembros para aislar el término con raíz cuadrada.`,
+				explanationBlocks: [
+					{ type: 'text', content: 'Aplicamos la misma operación a ambos lados:' },
+					{ type: 'math', content: formatToLatex(intermediate) }
+				],
+				concept: 'Propiedad uniforme de la igualdad — aislamiento del radical',
+				difficulty: 4
+			};
+		}
 
 		// 1. Mover constante del lado izquierdo al lado derecho
 		const constLeftIdx = leftTerms.findIndex(isConstant);
@@ -185,7 +252,7 @@ export class MoveTermsRule implements Rule {
 		}
 
 		// 2. Mover variable del lado derecho al lado izquierdo
-		const varRightIdx = rightTerms.findIndex(containsVariable);
+		const varRightIdx = rightTerms.findIndex((t) => containsVariable(t) && !containsSqrt(t));
 		if (varRightIdx !== -1) {
 			const termToMove = rightTerms[varRightIdx];
 			const negated = negateExpr(termToMove);
