@@ -138,10 +138,15 @@ export class FactorizationRule implements Rule {
 		const discCalcStr = `\\Delta = b^2 - 4ac = (${b})^2 - 4 \\cdot ${a} \\cdot ${c} = ${discriminant}`;
 
 		// Descripción compacta del método de factorización
-		const methodDesc =
+		// Se separa en dos bloques para evitar mezclar texto y LaTeX en un único bloque 'text'
+		const methodDescText =
 			discriminant === 0
-				? `Como \\(\\sqrt{\\Delta} = 0\\), la ecuación tiene una raíz doble:`
-				: `Como \\(\\sqrt{\\Delta} = ${sqrtD}\\) es un número entero, podemos factorizar:`;
+				? 'Como el discriminante es nulo, la ecuación tiene una raíz doble:'
+				: `Como √Δ = ${sqrtD} es número entero, la ecuación admite factorización:`;
+		const methodDescMath =
+			discriminant === 0
+				? `\\sqrt{\\Delta} = 0`
+				: `\\sqrt{\\Delta} = ${sqrtD} \\in \\mathbb{Z}`;
 
 		return {
 			before: expr,
@@ -162,12 +167,11 @@ export class FactorizationRule implements Rule {
 					content: 'Calculamos el discriminante para comprobar si admite factorización entera:'
 				},
 				{ type: 'math', content: discCalcStr },
-				{ type: 'text', content: methodDesc },
+				{ type: 'math', content: methodDescMath },
+				{ type: 'text', content: methodDescText },
 				{ type: 'math', content: factoredFormLatex },
-				{
-					type: 'text',
-					content: 'Propiedad del producto nulo: si A \\cdot B = 0, entonces A = 0 o B = 0:'
-				},
+				{ type: 'text', content: 'Propiedad del producto nulo: si A · B = 0, entonces A = 0 o B = 0:' },
+				{ type: 'math', content: 'A \\cdot B = 0 \\implies A = 0 \\text{ o } B = 0' },
 				{
 					type: 'math',
 					content: `${factorInner(den1, num1, varName)} = 0 \\quad \\Rightarrow \\quad ${varName} = ${sol1Latex}`

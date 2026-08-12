@@ -5,12 +5,24 @@ import { formatToLatex } from '../formatter/index';
  * Regla: Elevar al cuadrado ambos lados.
  * Aplica en ecuaciones donde al menos uno de los lados es una raíz cuadrada sola (\sqrt{...}).
  */
+function isSingleRadicalTerm(node: Expr): boolean {
+	if (node.type === 'Sqrt') return true;
+	if (
+		node.type === 'Multiply' &&
+		(node.left.type === 'Number' || node.right.type === 'Number') &&
+		(node.left.type === 'Sqrt' || node.right.type === 'Sqrt')
+	) {
+		return true;
+	}
+	return false;
+}
+
 export class SquareBothSidesRule implements Rule {
 	readonly name = 'square_both_sides';
 
 	applies(expr: Expr): boolean {
 		if (expr.type !== 'Equation') return false;
-		return expr.left.type === 'Sqrt' || expr.right.type === 'Sqrt';
+		return isSingleRadicalTerm(expr.left) || isSingleRadicalTerm(expr.right);
 	}
 
 	apply(expr: Expr): RuleResult {
@@ -24,22 +36,15 @@ export class SquareBothSidesRule implements Rule {
 		if (expr.left.type === 'Sqrt' && expr.right.type === 'Sqrt') {
 			newLeft = expr.left.inner;
 			newRight = expr.right.inner;
-		} else if (expr.left.type === 'Sqrt') {
-			newLeft = expr.left.inner;
-			newRight = {
-				type: 'Power',
-				base: expr.right,
-				exponent: { type: 'Number', value: 2 }
-			};
-		} else if (expr.right.type === 'Sqrt') {
-			newLeft = {
-				type: 'Power',
-				base: expr.left,
-				exponent: { type: 'Number', value: 2 }
-			};
-			newRight = expr.right.inner;
 		} else {
-			return { before: expr, after: expr, title: '', explanation: '', concept: '', difficulty: 0 };
+			newLeft =
+				expr.left.type === 'Sqrt'
+					? expr.left.inner
+					: { type: 'Power', base: expr.left, exponent: { type: 'Number', value: 2 } };
+			newRight =
+				expr.right.type === 'Sqrt'
+					? expr.right.inner
+					: { type: 'Power', base: expr.right, exponent: { type: 'Number', value: 2 } };
 		}
 
 		const after: Expr = { type: 'Equation', left: newLeft, right: newRight };

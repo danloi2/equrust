@@ -29,6 +29,28 @@ function makeConstantNode(val: number): Expr {
 	return { type: 'Number', value: val };
 }
 
+function isASTEqual(a: Expr, b: Expr): boolean {
+	if (a.type !== b.type) return false;
+	switch (a.type) {
+		case 'Number':
+			return b.type === 'Number' && a.value === b.value;
+		case 'Variable':
+			return b.type === 'Variable' && a.name === b.name;
+		case 'Sqrt':
+			return b.type === 'Sqrt' && isASTEqual(a.inner, b.inner);
+		case 'Add':
+		case 'Multiply':
+		case 'Divide':
+			return b.type === a.type && isASTEqual(a.left, b.left) && isASTEqual(a.right, b.right);
+		case 'Power':
+			return b.type === 'Power' && isASTEqual(a.base, b.base) && isASTEqual(a.exponent, b.exponent);
+		case 'Parenthesis':
+			return b.type === 'Parenthesis' && isASTEqual(a.inner, b.inner);
+		default:
+			return false;
+	}
+}
+
 export class SimplifyConstantsRule implements Rule {
 	readonly name = 'simplify_constants';
 
@@ -78,6 +100,13 @@ export class SimplifyConstantsRule implements Rule {
 					node.right.left.name === node.right.right.name
 				)
 					canApply = true;
+				// \sqrt{A} * \sqrt{A} → A
+				if (
+					node.left.type === 'Sqrt' &&
+					node.right.type === 'Sqrt' &&
+					isASTEqual(node.left.inner, node.right.inner)
+				)
+					canApply = true;
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
 				if (node.left.value % node.right.value === 0) canApply = true;
@@ -91,6 +120,15 @@ export class SimplifyConstantsRule implements Rule {
 				node.base.left.type === 'Number' &&
 				node.base.right.type === 'Variable' &&
 				node.exponent.type === 'Number'
+			)
+				canApply = true;
+			if (
+				node.type === 'Power' &&
+				node.base.type === 'Multiply' &&
+				node.base.left.type === 'Number' &&
+				node.base.right.type === 'Sqrt' &&
+				node.exponent.type === 'Number' &&
+				node.exponent.value === 2
 			)
 				canApply = true;
 			if (
@@ -180,20 +218,14 @@ export class SimplifyConstantsRule implements Rule {
 					applied = true;
 					return { type: 'Power', base: node.left, exponent: { type: 'Number', value: 2 } };
 				}
-				// n * (x * x) → n * x²
+				// \sqrt{A} * \sqrt{A} → A
 				if (
-					node.left.type === 'Number' &&
-					node.right.type === 'Multiply' &&
-					node.right.left.type === 'Variable' &&
-					node.right.right.type === 'Variable' &&
-					node.right.left.name === node.right.right.name
+					node.left.type === 'Sqrt' &&
+					node.right.type === 'Sqrt' &&
+					isASTEqual(node.left.inner, node.right.inner)
 				) {
 					applied = true;
-					return {
-						type: 'Multiply',
-						left: node.left,
-						right: { type: 'Power', base: node.right.left, exponent: { type: 'Number', value: 2 } }
-					};
+					return node.left.inner;
 				}
 			}
 			if (node.type === 'Divide' && node.left.type === 'Number' && node.right.type === 'Number') {
@@ -236,6 +268,20 @@ export class SimplifyConstantsRule implements Rule {
 				const varPow: Expr = { type: 'Power', base: node.base.right, exponent: node.exponent };
 				if (coef === 1) return varPow;
 				return { type: 'Multiply', left: { type: 'Number', value: coef }, right: varPow };
+			}
+			if (
+				node.type === 'Power' &&
+				node.base.type === 'Multiply' &&
+				node.base.left.type === 'Number' &&
+				node.base.right.type === 'Sqrt' &&
+				node.exponent.type === 'Number' &&
+				node.exponent.value === 2
+			) {
+				applied = true;
+				const coef = node.base.left.value * node.base.left.value;
+				const inner = node.base.right.inner;
+				if (coef === 1) return inner;
+				return { type: 'Multiply', left: { type: 'Number', value: coef }, right: inner };
 			}
 			if (
 				node.type === 'Power' &&

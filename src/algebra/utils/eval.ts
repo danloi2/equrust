@@ -76,16 +76,25 @@ export function containsSqrt(expr: Expr): boolean {
 
 export function verifyRadicalSolutions(
 	initialExpr: Expr,
-	solutions: readonly number[]
-): { validSolutions: number[]; details: VerificationDetail[] } {
+	solutions: readonly number[],
+	solutionsLatex?: readonly string[]
+): { validSolutions: number[]; validSolutionsLatex: string[]; details: VerificationDetail[] } {
 	if (initialExpr.type !== 'Equation') {
-		return { validSolutions: [...solutions], details: [] };
+		return {
+			validSolutions: [...solutions],
+			validSolutionsLatex: solutionsLatex ? [...solutionsLatex] : solutions.map((s) => `${s}`),
+			details: []
+		};
 	}
 
 	const validSolutions: number[] = [];
+	const validSolutionsLatex: string[] = [];
 	const details: VerificationDetail[] = [];
 
-	for (const sol of solutions) {
+	for (let i = 0; i < solutions.length; i++) {
+		const sol = solutions[i];
+		const solStr = solutionsLatex?.[i] ?? (Number.isInteger(sol) ? `${sol}` : parseFloat(sol.toFixed(4)).toString());
+
 		const leftVal = evalAST(initialExpr.left, sol);
 		const rightVal = evalAST(initialExpr.right, sol);
 
@@ -96,21 +105,27 @@ export function verifyRadicalSolutions(
 
 		if (isValid) {
 			validSolutions.push(sol);
+			validSolutionsLatex.push(solStr);
 		}
 
 		const formatVal = (v: number) =>
-			Number.isInteger(v) ? `${v}` : v.toFixed(2);
+			Number.isInteger(v) ? `${v}` : parseFloat(v.toFixed(4)).toString();
 
-		const leftStr = isNaN(leftVal) ? '\\text{indefinido}' : formatVal(leftVal);
-		const rightStr = isNaN(rightVal) ? '\\text{indefinido}' : formatVal(rightVal);
-
-		const symbol = isValid
-			? '\\checkmark \\text{ (Es solución)}'
-			: '\\boldsymbol{\\times} \\text{ (Solución espuria, se descarta)}';
-		const latexText = `\\text{Para } x = ${sol}: \\quad \\text{MIEMBRO IZQ} = ${leftStr}, \\quad \\text{MIEMBRO DER} = ${rightStr} \\quad ${symbol}`;
+		let latexText: string;
+		if (isValid) {
+			const leftStr = formatVal(leftVal);
+			const rightStr = formatVal(rightVal);
+			latexText = `\\text{Para } x = ${solStr}: \\quad \\text{IZQ} = ${leftStr}, \\quad \\text{DER} = ${rightStr} \\quad \\checkmark \\text{ (Solución válida)}`;
+		} else if (isNaN(leftVal) || isNaN(rightVal)) {
+			latexText = `\\text{Para } x = ${solStr}: \\quad \\text{no es válida en } \\mathbb{R} \\text{ (radicando negativo en } \\sqrt{\\cdot}\\text{)} \\quad \\boldsymbol{\\times} \\text{ (Solución extraña, se descarta)}`;
+		} else {
+			const leftStr = formatVal(leftVal);
+			const rightStr = formatVal(rightVal);
+			latexText = `\\text{Para } x = ${solStr}: \\quad \\text{IZQ} = ${leftStr} \\neq \\text{DER} = ${rightStr} \\quad \\boldsymbol{\\times} \\text{ (Solución extraña, se descarta)}`;
+		}
 
 		details.push({ val: sol, isValid, leftVal, rightVal, latexText });
 	}
 
-	return { validSolutions, details };
+	return { validSolutions, validSolutionsLatex, details };
 }

@@ -36,6 +36,19 @@ export function tokenize(input: string): Token[] {
 		return `^${digits}`;
 	});
 
+	// Normalizar variantes Unicode del signo menos al guión ASCII '-'
+	// U+2212 MINUS SIGN (−), U+2013 EN DASH (–), U+2014 EM DASH (—), U+2012 FIGURE DASH (‒)
+	input = input.replace(/[\u2212\u2013\u2014\u2012]/g, '-');
+
+	// Eliminar caracteres invisibles que se insertan al copiar desde web, móvil o editores de texto:
+	// U+200B Zero Width Space, U+200C Zero Width Non-Joiner, U+200D Zero Width Joiner,
+	// U+2060 Word Joiner, U+FEFF BOM / Zero Width No-Break Space, U+00AD Soft Hyphen
+	input = input.replace(/[\u200B\u200C\u200D\u2060\uFEFF\u00AD]/g, '');
+
+	// Normalizar espacios no estándar a espacio ASCII regular:
+	// U+00A0 No-Break Space, U+202F Narrow No-Break Space, U+2009 Thin Space, U+2007 Figure Space
+	input = input.replace(/[\u00A0\u202F\u2009\u2007]/g, ' ');
+
 	const tokens: Token[] = [];
 	let i = 0;
 

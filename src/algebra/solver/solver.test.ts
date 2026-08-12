@@ -268,4 +268,33 @@ describe('Solver', () => {
 		const last = steps[steps.length - 1];
 		expect(formatToLatex(last.after)).toBe('x = 4');
 	});
+
+	it('solves radical equation with fraction \\sqrt{x}+\\frac{4}{\\sqrt{x}}=5', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('\\sqrt{x}+\\frac{4}{\\sqrt{x}}=5'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		const last = steps[steps.length - 1];
+		expect(last.solutions).toHaveLength(2);
+		const sols = [...(last.solutions as unknown as number[])].sort((a, b) => a - b);
+		expect(sols[0]).toBeCloseTo(1, 6);
+		expect(sols[1]).toBeCloseTo(16, 6);
+	});
+
+	it('solves nested radical equation \\sqrt{x+\\sqrt{x+8}}=2\\sqrt{x} and discards extraneous root x=-8/9', () => {
+		const solver = new Solver();
+		const ast = parse(tokenize('\\sqrt{x+\\sqrt{x+8}}=2\\sqrt{x}'));
+		const steps = solver.solve(ast);
+
+		expect(steps.length).toBeGreaterThan(0);
+		const last = steps[steps.length - 1];
+		expect(last.solutions).toHaveLength(1);
+		expect(last.solutions![0]).toBeCloseTo(1, 6);
+		expect(last.solutionsLatex).toEqual(['1']);
+
+		const lastBlockText = last.explanationBlocks?.map((b) => b.content).join(' ') ?? '';
+		expect(lastBlockText).toContain('-\\frac{8}{9}');
+		expect(lastBlockText).toContain('Solución extraña');
+	});
 });

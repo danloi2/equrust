@@ -90,7 +90,11 @@ export class Solver {
 			const lastIdx = steps.length - 1;
 			const lastStep = steps[lastIdx];
 			if (lastStep.solutions && lastStep.solutions.length > 0) {
-				const { validSolutions, details } = verifyRadicalSolutions(initialExpr, lastStep.solutions);
+				const { validSolutions, validSolutionsLatex, details } = verifyRadicalSolutions(
+					initialExpr,
+					lastStep.solutions,
+					lastStep.solutionsLatex
+				);
 				const existingBlocks = lastStep.explanationBlocks ? [...lastStep.explanationBlocks] : [];
 				existingBlocks.push({
 					type: 'text',
@@ -109,9 +113,16 @@ export class Solver {
 						? ([validSolutions[0]] as const)
 						: ([] as const);
 
+				const updatedSolutionsLatex = validSolutionsLatex.length === 2
+					? ([validSolutionsLatex[0], validSolutionsLatex[1]] as const)
+					: validSolutionsLatex.length === 1
+						? ([validSolutionsLatex[0]] as const)
+						: ([] as const);
+
 				steps[lastIdx] = {
 					...lastStep,
 					solutions: updatedSolutions,
+					solutionsLatex: updatedSolutionsLatex,
 					explanationBlocks: existingBlocks
 				};
 			}
